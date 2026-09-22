@@ -56,6 +56,22 @@ export class ClaimError extends Error {
   }
 }
 
+export interface AddEarnInput {
+  /** Kid user id, or the admin id to log a parent earn/demerit. */
+  earnerId: string
+  actId: string
+  note?: string
+}
+
+export class AddEarnError extends Error {
+  readonly code: 'unknown-user' | 'unknown-act' | 'not-path-b' | 'wrong-band'
+  constructor(code: AddEarnError['code'], message: string) {
+    super(message)
+    this.name = 'AddEarnError'
+    this.code = code
+  }
+}
+
 type Listener = () => void
 
 /**
@@ -121,6 +137,49 @@ export class Repository {
 
   getAct(id: string): EarnAct | undefined {
     return this.db.earnActs.find((a) => a.id === id)
+  }
+
+  /**
+   * Path B acts a parent may stamp for this earner. Kids get their band's Path B
+   * acts plus conduct acts for their audience; the admin (as parent) gets the
+   * parent band. Path A acts never appear here: those go through the inbox.
+   */
+  adminListPathBActsFor(earnerId: string): EarnAct[] {
+    const user = this.getUser(earnerId)
+    if (!user) return []
+    return this.db.earnActs.filter((act) => act.path === 'B' && this.actAppliesTo(act, user))
+  }
+
+  private actAppliesTo(act: EarnAct, user: User): boolean {
+    if (user.role === 'admin') return act.band === 'parent'
+    if (!user.band) return false
+    if (act.band === user.band) return true
+    return act.band === 'conduct' && act.audience === user.band
+  }
+
+  /**
+   * ADMIN ONLY. Stamp a Path B earn or demerit straight into the ledger and
+   * meters. No claim, no pending state: this is the parent's word.
+   */
+  adminAddEarn(input: AddEarnInput): LedgerEntry {
+    const user = this.getUser(input.earnerId)
+    if (!user) throw new AddEarnError('unknown-user', `Unknown earner ${input.earnerId}`)
+    const act = this.getAct(input.actId)
+    if (!act) throw new AddEarnError('unknown-act', `Unknown act ${input.actId}`)
+    if (act.path !== 'B') {
+      throw new AddEarnError('not-path-b', `${act.title} is Path A; kids claim it and parents approve it in the Inbox`)
+    }
+    if (!this.actAppliesTo(act, user)) {
+      throw new AddEarnError('wrong-band', `${act.title} does not apply to ${user.name}`)
+    }
+    return this.recordApprovedPoints({
+      userId: user.id,
+      actId: act.id,
+      points: act.points,
+      path: 'B',
+      source: 'add-earn',
+      note: input.note?.trim() || undefined,
+    })
   }
 
   // --- claims (Path A "I did it" -> parent inbox) -------------------------

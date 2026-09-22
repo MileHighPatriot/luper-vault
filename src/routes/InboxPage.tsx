@@ -4,8 +4,8 @@ import { Check, CheckCheck, Inbox, Pencil, X } from 'lucide-react'
 import { useRepository, useRepositoryValue } from '@/data/RepositoryContext'
 import type { PendingClaim } from '@/data/types'
 import { ClaimError } from '@/data/repository'
-import { meterPercent, meterPoints } from '@/engine/meters'
 import { denverDateKey, formatDenver } from '@/lib/time/denver'
+import { MeterStrip } from '@/components/MeterStrip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -137,7 +137,6 @@ export function InboxPage() {
   const claims = useRepositoryValue((r) => r.listPendingClaims())
   const users = useRepositoryValue((r) => r.listUsers())
   const acts = useRepositoryValue((r) => r.listActs())
-  const meters = useRepositoryValue((r) => r.getMeters())
   const [error, setError] = useState<string | null>(null)
 
   const nameOf = (id: string) => users.find((u) => u.id === id)?.name ?? id
@@ -171,19 +170,7 @@ export function InboxPage() {
         )}
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3" aria-label="Family meters">
-        {meters.map((m) => (
-          <div key={m.tier} className="flex items-center justify-between rounded-lg border bg-card px-3 py-2 text-sm">
-            <span className="text-muted-foreground">{m.tier}</span>
-            <span className="tabular-nums">
-              <span className="font-semibold" data-testid={`inbox-meter-${m.tier}`}>
-                {meterPoints(m)}
-              </span>
-              <span className="text-muted-foreground"> / {m.fill} · {meterPercent(m)}%</span>
-            </span>
-          </div>
-        ))}
-      </div>
+      <MeterStrip testIdPrefix="inbox-meter" />
 
       {error && (
         <p role="alert" className="text-sm font-medium text-destructive">

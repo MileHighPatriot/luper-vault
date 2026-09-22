@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 
 const SOURCE_LABEL: Record<LedgerSource, string> = {
   inbox: 'Inbox',
+  'add-earn': 'Add earn',
   simulate: 'Simulated',
 }
 

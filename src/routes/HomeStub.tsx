@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Coins, Gauge, Gift, Home, Inbox, ScrollText, Trophy, Wrench, type LucideIcon } from 'lucide-react'
+import { CirclePlus, Coins, Gauge, Gift, Home, Inbox, ScrollText, Trophy, Wrench, type LucideIcon } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { useRepositoryValue } from '@/data/RepositoryContext'
 import { Badge } from '@/components/ui/badge'
@@ -19,10 +19,7 @@ const KID_NAV: StubItem[] = [
   { label: 'Wins', icon: Trophy, phase: 5 },
 ]
 
-const ADMIN_NAV: StubItem[] = [
-  { label: 'Add earn', icon: Coins, phase: 3 },
-  { label: 'Rewards builder', icon: Gift, phase: 5 },
-]
+const ADMIN_NAV: StubItem[] = [{ label: 'Rewards builder', icon: Gift, phase: 5 }]
 
 function StubNav({ items }: { items: StubItem[] }) {
   return (
@@ -55,7 +52,8 @@ export function HomeStub() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Parent console</h1>
           <p className="text-sm text-muted-foreground">
-            Process Path A claims in the Inbox. Approvals write the family ledger and move the meters.
+            Approve Path A claims in the Inbox or stamp Path B earns and demerits in Add earn. Both write the family
+            ledger and move the meters.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -71,6 +69,20 @@ export function HomeStub() {
             <CardContent>
               <Button asChild>
                 <Link to="/admin/inbox">Open Inbox</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CirclePlus className="size-5 text-primary" aria-hidden />
+                Add earn
+              </CardTitle>
+              <CardDescription>Stamp Path B earns and demerits directly.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild>
+                <Link to="/admin/add-earn">Open Add earn</Link>
               </Button>
             </CardContent>
           </Card>

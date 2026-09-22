@@ -8,8 +8,8 @@ export const APP_NAME = 'The Luper Ledger'
 
 export function PhaseBadge() {
   return (
-    <Badge variant="accent" title="Foundation + parent inbox. Kid screens, rewards, and the calendar gate land in Phases 3–6.">
-      Phase 2 of 6
+    <Badge variant="accent" title="Foundation, parent inbox, and Add earn. Kid screens, rewards, and the calendar gate land in Phases 4–6.">
+      Phase 3 of 6
     </Badge>
   )
 }
@@ -49,7 +49,7 @@ export function AppShell() {
 
       <footer className="border-t">
         <div className="mx-auto w-full max-w-4xl px-4 py-3 text-xs text-muted-foreground">
-          Phase 2 of 6. Parent Add earn, kid Earn, Rewards, and the calendar gate arrive in later phases.
+          Phase 3 of 6. Kid Earn, Rewards, and the calendar gate arrive in later phases.
         </div>
       </footer>
     </div>

@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Gauge, Inbox, ScrollText, Wrench, type LucideIcon } from 'lucide-react'
+import { CirclePlus, Gauge, Inbox, ScrollText, Wrench, type LucideIcon } from 'lucide-react'
 import { useRepositoryValue } from '@/data/RepositoryContext'
 import { cn } from '@/lib/utils'
 
@@ -11,6 +11,7 @@ interface AdminTab {
 
 const TABS: AdminTab[] = [
   { to: '/admin/inbox', label: 'Inbox', icon: Inbox },
+  { to: '/admin/add-earn', label: 'Add earn', icon: CirclePlus },
   { to: '/admin/ledger', label: 'Ledger', icon: ScrollText },
   { to: '/admin/verify', label: 'Verify', icon: Gauge },
   { to: '/admin/dev', label: 'Dev tools', icon: Wrench },

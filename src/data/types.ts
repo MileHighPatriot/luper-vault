@@ -35,8 +35,12 @@ export interface EarnAct {
   rare?: boolean
 }
 
-/** Where a ledger entry came from. `simulate` is the admin verify screen. */
-export type LedgerSource = 'inbox' | 'simulate'
+/**
+ * Where a ledger entry came from.
+ * `inbox` = approved Path A claim, `add-earn` = parent-stamped Path B earn or
+ * demerit, `simulate` = admin verify screen.
+ */
+export type LedgerSource = 'inbox' | 'add-earn' | 'simulate'
 
 /** Approved points only. Pending claims never touch this table. */
 export interface LedgerEntry {
