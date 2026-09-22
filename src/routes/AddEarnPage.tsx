@@ -50,7 +50,7 @@ function ActOption({
       onClick={onSelect}
       className={cn(
         'flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-        selected ? 'border-primary bg-secondary' : 'bg-card hover:bg-secondary/60',
+        selected ? 'border-accent/60 bg-secondary' : 'bg-sky-1/40 hover:bg-secondary/60',
       )}
     >
       <span className="flex min-w-0 items-center gap-2">
@@ -171,7 +171,7 @@ export function AddEarnPage() {
                     onClick={() => pickEarner(u.id)}
                     className={cn(
                       'flex items-center gap-3 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      selected ? 'border-primary bg-secondary' : 'bg-card hover:bg-secondary/60',
+                      selected ? 'border-accent/60 bg-secondary' : 'bg-sky-1/40 hover:bg-secondary/60',
                     )}
                   >
                     <Icon className="size-4 text-primary" aria-hidden />

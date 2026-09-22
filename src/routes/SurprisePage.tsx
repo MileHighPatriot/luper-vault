@@ -136,7 +136,7 @@ export function SurprisePage() {
                     onClick={() => setEmoji((current) => (current === choice ? '' : choice))}
                     className={cn(
                       'flex size-10 items-center justify-center rounded-lg border text-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                      emoji === choice ? 'border-primary bg-secondary' : 'bg-card hover:bg-secondary/60',
+                      emoji === choice ? 'border-accent/60 bg-secondary' : 'bg-sky-1/40 hover:bg-secondary/60',
                     )}
                   >
                     {choice}

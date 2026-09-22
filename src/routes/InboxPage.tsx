@@ -6,6 +6,7 @@ import { useHouseholdClock } from '@/data/useHouseholdClock'
 import type { PendingClaim } from '@/data/types'
 import { ClaimError } from '@/data/repository'
 import { denverDateKey, formatDenver } from '@/lib/time/denver'
+import { useSounds } from '@/lib/useSounds'
 import { MeterStrip } from '@/components/MeterStrip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,13 +26,15 @@ interface RowProps {
 
 function ClaimRow({ claim, kidName, actTitle, onError }: RowProps) {
   const repo = useRepository()
+  const play = useSounds()
   const [editing, setEditing] = useState(false)
   const [points, setPoints] = useState(String(claim.requestedPoints))
   const [note, setNote] = useState('')
 
-  function run(action: () => void) {
+  function run(action: () => void, sound?: 'approve' | 'tap') {
     try {
       action()
+      if (sound) play(sound)
     } catch (err) {
       onError(err instanceof ClaimError ? err.message : 'Something went wrong. Try again.')
     }
@@ -44,7 +47,7 @@ function ClaimRow({ claim, kidName, actTitle, onError }: RowProps) {
       onError('Points must be a whole number.')
       return
     }
-    run(() => repo.approveClaim(claim.id, { points: parsed, note: note.trim() || undefined }))
+    run(() => repo.approveClaim(claim.id, { points: parsed, note: note.trim() || undefined }), 'approve')
   }
 
   const edited = Number(points) !== claim.requestedPoints && Number.isInteger(Number(points))
@@ -54,10 +57,10 @@ function ClaimRow({ claim, kidName, actTitle, onError }: RowProps) {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold">{kidName}</span>
+            <span className="font-bold">{kidName}</span>
             <span className="text-muted-foreground">·</span>
             <span className="truncate">{actTitle}</span>
-            <Badge variant="secondary" className="tabular-nums">
+            <Badge variant="accent" className="tabular-nums">
               {signed(claim.requestedPoints)} pts
             </Badge>
           </div>
@@ -65,11 +68,11 @@ function ClaimRow({ claim, kidName, actTitle, onError }: RowProps) {
         </div>
         {!editing && (
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => run(() => repo.approveClaim(claim.id))}>
+            <Button size="sm" variant="approve" onClick={() => run(() => repo.approveClaim(claim.id), 'approve')}>
               <Check className="size-4" aria-hidden />
               Approve
             </Button>
-            <Button size="sm" variant="outline" onClick={() => run(() => repo.denyClaim(claim.id))}>
+            <Button size="sm" variant="deny" onClick={() => run(() => repo.denyClaim(claim.id), 'tap')}>
               <X className="size-4" aria-hidden />
               Deny
             </Button>
@@ -82,7 +85,7 @@ function ClaimRow({ claim, kidName, actTitle, onError }: RowProps) {
       </div>
 
       {editing && (
-        <form onSubmit={approveEdited} className="flex flex-col gap-3 rounded-lg bg-muted/60 p-3 sm:flex-row sm:items-end">
+        <form onSubmit={approveEdited} className="flex flex-col gap-3 rounded-xl bg-sky-1/50 p-3 sm:flex-row sm:items-end">
           <div className="flex flex-col gap-1">
             <label htmlFor={`points-${claim.id}`} className="text-xs font-medium text-muted-foreground">
               Points
@@ -93,7 +96,7 @@ function ClaimRow({ claim, kidName, actTitle, onError }: RowProps) {
               step={1}
               value={points}
               onChange={(e) => setPoints(e.target.value)}
-              className="w-24 bg-card"
+              className="w-24"
               autoFocus
             />
           </div>
@@ -106,19 +109,18 @@ function ClaimRow({ claim, kidName, actTitle, onError }: RowProps) {
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Why the change, or a word for the kid"
-              className="bg-card"
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" size="sm">
+            <Button type="submit" size="sm" variant="approve">
               <Check className="size-4" aria-hidden />
               Approve {edited ? `at ${signed(Number(points))}` : ''}
             </Button>
             <Button
               type="button"
               size="sm"
-              variant="outline"
-              onClick={() => run(() => repo.denyClaim(claim.id, note.trim() || undefined))}
+              variant="deny"
+              onClick={() => run(() => repo.denyClaim(claim.id, note.trim() || undefined), 'tap')}
             >
               <X className="size-4" aria-hidden />
               Deny
@@ -139,6 +141,7 @@ export function InboxPage() {
   const users = useRepositoryValue((r) => r.listUsers())
   const acts = useRepositoryValue((r) => r.listActs())
   const [error, setError] = useState<string | null>(null)
+  const play = useSounds()
 
   const nameOf = (id: string) => users.find((u) => u.id === id)?.name ?? id
   const titleOf = (id: string) => acts.find((a) => a.id === id)?.title ?? id
@@ -148,6 +151,7 @@ export function InboxPage() {
   function approveAllToday() {
     try {
       repo.approveAllPendingOn(today)
+      play('approve')
       setError(null)
     } catch (err) {
       setError(err instanceof ClaimError ? err.message : 'Something went wrong. Try again.')
@@ -158,13 +162,13 @@ export function InboxPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Inbox</h1>
           <p className="text-sm text-muted-foreground">
             Path A claims waiting on a parent. Approve writes the family ledger and moves the meters; Deny does neither.
           </p>
         </div>
         {todayCount > 0 && (
-          <Button variant="secondary" onClick={approveAllToday}>
+          <Button variant="approve" onClick={approveAllToday}>
             <CheckCheck className="size-4" aria-hidden />
             Approve all today ({todayCount})
           </Button>
@@ -182,11 +186,11 @@ export function InboxPage() {
       {claims.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
-            <span className="flex size-12 items-center justify-center rounded-full bg-secondary text-primary">
+            <span className="flex size-12 items-center justify-center rounded-full bg-sky-1 text-star ring-1 ring-accent/40">
               <Inbox className="size-6" aria-hidden />
             </span>
             <div>
-              <p className="font-semibold">All clear</p>
+              <p className="font-bold">All clear</p>
               <p className="text-sm text-muted-foreground">
                 No claims waiting. Kids send them from their Earn screen, or queue test ones from{' '}
                 <Link to="/admin/dev" className="underline underline-offset-4">
@@ -199,7 +203,7 @@ export function InboxPage() {
         </Card>
       ) : (
         <Card>
-          <ul className="divide-y">
+          <ul className="divide-y divide-ivory/10">
             {claims.map((claim) => (
               <ClaimRow
                 key={claim.id}

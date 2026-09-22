@@ -32,9 +32,9 @@ export function KidRewardsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Rewards</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">Rewards</h1>
         <p className="text-sm text-muted-foreground">
-          Fill a vault together and the whole family unlocks its reward.
+          Fill a vault together and the whole crew unlocks its reward. One reward per orbit.
         </p>
       </div>
 
@@ -42,9 +42,9 @@ export function KidRewardsPage() {
         <p
           role="status"
           data-testid="rewards-sunday"
-          className="flex items-center gap-2 rounded-xl border border-accent-foreground/20 bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground"
+          className="glass flex items-center gap-2 rounded-2xl border border-accent/40 px-4 py-3 text-sm font-bold"
         >
-          <PartyPopper className="size-4" aria-hidden />
+          <PartyPopper className="size-4 text-accent" aria-hidden />
           Reward day — no claims today. Time to enjoy what the family unlocked.
         </p>
       )}
@@ -62,8 +62,8 @@ export function KidRewardsPage() {
               aria-selected={active}
               onClick={() => setTier(t)}
               className={cn(
-                'flex flex-col items-center gap-1 rounded-xl border px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                active ? 'border-primary bg-secondary' : 'bg-card hover:bg-secondary/60',
+                'glass flex flex-col items-center gap-1 rounded-2xl border px-3 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                active ? 'border-accent/60 text-foreground shadow-[0_0_24px_-12px] shadow-accent' : 'text-muted-foreground hover:text-foreground',
               )}
             >
               <span>{TIER_PERIOD[t]}</span>
@@ -77,9 +77,9 @@ export function KidRewardsPage() {
       </div>
 
       {meter && (
-        <div className="rounded-xl border bg-card px-4 py-3">
+        <div className="glass rounded-2xl border px-4 py-3">
           <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="font-medium">{VAULT_LABEL[tier]}</span>
+            <span className="font-semibold">{VAULT_LABEL[tier]}</span>
             <span className="tabular-nums text-muted-foreground" data-testid={`rewards-${tier}-pct`}>
               {pct}% full
             </span>
@@ -90,9 +90,12 @@ export function KidRewardsPage() {
             aria-valuemax={100}
             aria-valuenow={pct}
             aria-label={`${VAULT_LABEL[tier]} fill`}
-            className="h-3 w-full overflow-hidden rounded-full bg-muted"
+            className="h-3 w-full overflow-hidden rounded-full bg-sky-1/70"
           >
-            <div className={cn('h-full rounded-full transition-all', TIER_BAR[tier])} style={{ width: `${pct}%` }} />
+            <div
+              className={cn('h-full rounded-full transition-[width] duration-700 ease-out motion-reduce:transition-none', TIER_BAR[tier])}
+              style={{ width: `${pct}%` }}
+            />
           </div>
         </div>
       )}
@@ -111,10 +114,14 @@ export function KidRewardsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {list.map((reward) => (
-            <Card key={reward.id} className={cn(unlocked && 'border-primary/40 bg-secondary/40')} data-testid={`reward-${reward.id}`}>
+            <Card
+              key={reward.id}
+              className={cn(unlocked && 'border-accent/60 shadow-[0_0_40px_-16px] shadow-accent/70')}
+              data-testid={`reward-${reward.id}`}
+            >
               <CardHeader>
-                <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-                  <Gift className={cn('size-5', unlocked ? 'text-primary' : 'text-muted-foreground')} aria-hidden />
+                <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
+                  <Gift className={cn('size-5', unlocked ? 'text-star' : 'text-muted-foreground')} aria-hidden />
                   {reward.title}
                   {reward.announced && (
                     <Badge variant="accent" className="gap-1">
@@ -128,8 +135,8 @@ export function KidRewardsPage() {
               <CardContent>
                 <span
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold',
-                    unlocked ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                    'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold',
+                    unlocked ? 'animate-pop bg-accent text-accent-foreground' : 'bg-sky-1/70 text-muted-foreground',
                   )}
                   data-testid={`reward-${reward.id}-state`}
                 >
@@ -143,7 +150,7 @@ export function KidRewardsPage() {
       )}
 
       {!unlocked && (
-        <Button asChild variant="outline" className="self-start">
+        <Button asChild variant="star" className="self-start">
           <Link to="/earn">Go earn toward it</Link>
         </Button>
       )}

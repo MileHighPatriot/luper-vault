@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Hand, Hourglass, Lock, Moon, PartyPopper } from 'lucide-react'
+import { Check, Hourglass, Lock, Moon, PartyPopper, Rocket } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { useRepository, useRepositoryValue } from '@/data/RepositoryContext'
 import { useHouseholdClock } from '@/data/useHouseholdClock'
 import type { KidEarnAct } from '@/data/types'
 import { ClaimError } from '@/data/repository'
 import { formatDenver } from '@/lib/time/denver'
+import { useSounds } from '@/lib/useSounds'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -26,19 +27,24 @@ function ClaimableRow({
   return (
     <li className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
       <span className="flex items-center gap-2">
-        <span className="font-medium">{act.title}</span>
-        {act.rare && <Badge variant="outline">rare</Badge>}
+        <span className="font-semibold">{act.title}</span>
+        {act.rare && (
+          <Badge variant="accent" className="gap-1">
+            <Sparkle />
+            rare
+          </Badge>
+        )}
       </span>
       {pending ? (
         <span
           role="status"
-          className="inline-flex items-center gap-1.5 self-start rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground sm:self-auto"
+          className="inline-flex animate-pop items-center gap-1.5 self-start rounded-full border border-accent/40 bg-accent/15 px-3 py-1 text-xs font-bold text-foreground sm:self-auto"
         >
-          <Hourglass className="size-3.5" aria-hidden />
+          <Hourglass className="size-3.5 text-accent" aria-hidden />
           Waiting for Ground Control
         </span>
       ) : open ? (
-        <Button size="sm" onClick={onClaim} className="self-start sm:self-auto">
+        <Button size="sm" variant="star" onClick={onClaim} className="self-start sm:self-auto">
           <Check className="size-4" aria-hidden />I did it
         </Button>
       ) : (
@@ -51,9 +57,13 @@ function ClaimableRow({
   )
 }
 
+function Sparkle() {
+  return <span aria-hidden>✦</span>
+}
+
 function ParentStampRow({ act }: { act: KidEarnAct }) {
   return (
-    <li className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+    <li className="flex flex-col gap-2 px-4 py-3 text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
       <span className="flex items-center gap-2">
         <span className="font-medium">{act.title}</span>
         {act.rare && <Badge variant="outline">rare</Badge>}
@@ -78,6 +88,7 @@ export function KidEarnPage() {
   const pendingActIds = useRepositoryValue((r) => r.listKidPendingClaims(userId).map((c) => c.actId))
   const [error, setError] = useState<string | null>(null)
   const { window: earn } = useHouseholdClock()
+  const play = useSounds()
 
   const claimable = acts.filter((a) => a.path === 'A')
   const parentStamps = acts.filter((a) => a.path === 'B')
@@ -86,6 +97,7 @@ export function KidEarnPage() {
   function claim(act: KidEarnAct) {
     try {
       repo.claimForKid({ userId, actId: act.id })
+      play('tap')
       setError(null)
     } catch (err) {
       setError(err instanceof ClaimError ? err.message : 'Could not send that. Try again.')
@@ -95,7 +107,7 @@ export function KidEarnPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Earn</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">Earn</h1>
         <p className="text-sm text-muted-foreground">
           Did one of these? Tap “I did it” and a parent will check it. Everything you earn goes into the family vault.
         </p>
@@ -108,25 +120,25 @@ export function KidEarnPage() {
           role="status"
           data-testid="earn-closed"
           className={cn(
-            'flex flex-col gap-2 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between',
-            earn.reason === 'sunday' ? 'border-accent-foreground/20 bg-accent text-accent-foreground' : 'bg-secondary',
+            'glass flex flex-col gap-2 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between',
+            earn.reason === 'sunday' ? 'border-accent/40' : 'border-primary/30',
           )}
         >
           <div className="flex items-start gap-3">
             {earn.reason === 'sunday' ? (
-              <PartyPopper className="mt-0.5 size-5 shrink-0" aria-hidden />
+              <PartyPopper className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
             ) : (
               <Moon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
             )}
             <div className="text-sm">
-              <p className="font-semibold">
+              <p className="font-bold">
                 {earn.reason === 'sunday'
                   ? 'Reward day — no claims today'
                   : earn.reason === 'before-go-live'
                     ? 'Not open yet'
                     : 'Claims are closed for tonight'}
               </p>
-              <p className={earn.reason === 'sunday' ? 'opacity-80' : 'text-muted-foreground'}>
+              <p className="text-muted-foreground">
                 {earn.message}
                 {earn.reopensAt ? ` Opens ${formatDenver(earn.reopensAt)}.` : ''}
               </p>
@@ -134,10 +146,10 @@ export function KidEarnPage() {
           </div>
           {earn.reason === 'sunday' && (
             <div className="flex gap-2 sm:shrink-0">
-              <Button asChild size="sm" variant="outline" className="bg-card">
+              <Button asChild size="sm" variant="star">
                 <Link to="/rewards">Rewards</Link>
               </Button>
-              <Button asChild size="sm" variant="outline" className="bg-card">
+              <Button asChild size="sm" variant="outline">
                 <Link to="/wins">Wins</Link>
               </Button>
             </div>
@@ -157,10 +169,10 @@ export function KidEarnPage() {
         </p>
       )}
 
-      <Card>
+      <Card className="border-accent/30">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Hand className="size-5 text-primary" aria-hidden />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Rocket className="size-5 text-star" aria-hidden />
             You can claim these
           </CardTitle>
           <CardDescription>Tap once. It shows as waiting until a parent approves it.</CardDescription>
@@ -169,7 +181,7 @@ export function KidEarnPage() {
           {claimable.length === 0 ? (
             <p className="px-4 pb-6 text-sm text-muted-foreground">Nothing to claim right now.</p>
           ) : (
-            <ul className="divide-y border-t">
+            <ul className="divide-y divide-ivory/10 border-t border-ivory/10">
               {claimable.map((act) => (
                 <ClaimableRow
                   key={act.id}
@@ -184,16 +196,16 @@ export function KidEarnPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="opacity-90">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="size-5 text-muted-foreground" aria-hidden />
+          <CardTitle className="flex items-center gap-2 text-lg text-muted-foreground">
+            <Lock className="size-5" aria-hidden />
             Parents add these
           </CardTitle>
           <CardDescription>Big ones a parent notices and stamps for you. Nothing to tap here.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
-          <ul className="divide-y border-t">
+          <ul className="divide-y divide-ivory/10 border-t border-ivory/10">
             {parentStamps.map((act) => (
               <ParentStampRow key={act.id} act={act} />
             ))}

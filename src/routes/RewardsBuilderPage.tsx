@@ -138,7 +138,7 @@ function AddRewardForm({ tier, onError }: { tier: Tier; onError(message: string)
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-2 rounded-lg bg-muted/60 p-3">
+    <form onSubmit={submit} className="flex flex-col gap-2 rounded-xl bg-sky-1/50 p-3">
       <label htmlFor={`new-title-${tier}`} className="text-xs font-medium text-muted-foreground">
         Title
       </label>
@@ -147,7 +147,7 @@ function AddRewardForm({ tier, onError }: { tier: Tier; onError(message: string)
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Pancake breakfast"
-        className="bg-card"
+       
         autoFocus
       />
       <label htmlFor={`new-blurb-${tier}`} className="text-xs font-medium text-muted-foreground">
@@ -158,7 +158,7 @@ function AddRewardForm({ tier, onError }: { tier: Tier; onError(message: string)
         value={blurb}
         onChange={(e) => setBlurb(e.target.value)}
         placeholder="Saturday morning, everyone helps."
-        className="bg-card"
+       
       />
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={title.trim().length === 0}>

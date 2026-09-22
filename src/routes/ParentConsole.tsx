@@ -32,7 +32,7 @@ export function ParentConsole() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Parent console</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Ground Control</h1>
         <p className="text-sm text-muted-foreground">
           Approve Path A claims in the Inbox or stamp Path B earns and demerits in Add earn. Both write the family
           ledger and move the meters.
@@ -58,7 +58,8 @@ export function ParentConsole() {
         ))}
       </div>
       <p className="text-xs text-muted-foreground">
-        Monday-ready core is in. Phase 7 added surprise drops; Phase 8 adds the admin PIN, Settings, and the Audit log.
+        Monday-ready core is in. Phase 9 dresses it as Constellation Crew; nothing about points, calendars, or caps
+        changed.
       </p>
     </div>
   )

@@ -8,7 +8,7 @@ function NativeSelect({ className, children, ...props }: React.SelectHTMLAttribu
     <div className="relative">
       <select
         className={cn(
-          'flex h-10 w-full appearance-none rounded-lg border border-input bg-card px-3 py-2 pr-9 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+          'flex h-10 w-full appearance-none rounded-xl border border-input bg-sky-1/60 px-3 py-2 pr-9 text-sm text-foreground shadow-inner transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>option]:bg-sky-2 [&>option]:text-foreground',
           className,
         )}
         {...props}

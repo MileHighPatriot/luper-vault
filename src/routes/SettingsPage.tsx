@@ -109,7 +109,7 @@ export function SettingsPage() {
                   maxLength={400}
                   required
                   data-testid="settings-verse"
-                  className="flex w-full rounded-lg border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex w-full rounded-xl border border-input bg-sky-1/60 px-3 py-2 text-sm text-foreground shadow-inner transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </label>
               <NoticeLine notice={familyNotice} testId="settings-family-notice" />

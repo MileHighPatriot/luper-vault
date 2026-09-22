@@ -25,19 +25,19 @@ export function AnnouncementBanner({ userId }: { userId: string }) {
   return (
     <div
       role="status"
-      className="flex flex-col gap-3 rounded-xl border border-accent-foreground/20 bg-accent p-4 text-accent-foreground sm:flex-row sm:items-center sm:justify-between"
+      className="glass flex animate-flare-in flex-col gap-3 rounded-2xl border border-accent/50 p-4 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex items-start gap-3">
-        <Megaphone className="mt-0.5 size-5 shrink-0" aria-hidden />
+        <Megaphone className="mt-0.5 size-5 shrink-0 text-accent" aria-hidden />
         <div className="text-sm">
-          <p className="font-semibold">
-            {announcements.length === 1 ? 'A parent announced a reward' : 'New rewards announced'}
+          <p className="font-bold">
+            {announcements.length === 1 ? 'Ground Control announced a reward' : 'New rewards announced'}
           </p>
           <ul className="mt-1 space-y-0.5">
             {announcements.map((a) => (
               <li key={a.id}>
-                <span className="font-medium">{a.title}</span>
-                <span className="opacity-80">
+                <span className="font-semibold">{a.title}</span>
+                <span className="text-muted-foreground">
                   {' '}
                   · {TIER_PERIOD[a.tier]}
                   {a.blurb ? ` · ${a.blurb}` : ''}
@@ -48,7 +48,7 @@ export function AnnouncementBanner({ userId }: { userId: string }) {
         </div>
       </div>
       <div className="flex items-center gap-2 sm:shrink-0">
-        <Button asChild size="sm" variant="outline" className="bg-card">
+        <Button asChild size="sm" variant="star">
           <Link to="/rewards">See rewards</Link>
         </Button>
         <Button size="sm" variant="ghost" onClick={() => setAnnouncements([])} aria-label="Dismiss">

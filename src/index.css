@@ -1,35 +1,190 @@
 @import 'tailwindcss';
 
+/*
+ * Constellation Crew skin (Phase 9). Skin only: behavior lives in the
+ * repository and engine. Deep sky, warm stars, glass cards.
+ */
 @theme {
-  --color-background: oklch(0.985 0.005 260);
-  --color-foreground: oklch(0.2 0.03 260);
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.2 0.03 260);
-  --color-primary: oklch(0.42 0.16 265);
-  --color-primary-foreground: oklch(0.99 0 0);
-  --color-secondary: oklch(0.94 0.02 260);
-  --color-secondary-foreground: oklch(0.25 0.04 260);
-  --color-muted: oklch(0.95 0.01 260);
-  --color-muted-foreground: oklch(0.5 0.02 260);
-  --color-accent: oklch(0.92 0.06 80);
-  --color-accent-foreground: oklch(0.3 0.06 60);
-  --color-destructive: oklch(0.55 0.2 25);
-  --color-destructive-foreground: oklch(0.99 0 0);
-  --color-border: oklch(0.9 0.01 260);
-  --color-input: oklch(0.9 0.01 260);
-  --color-ring: oklch(0.55 0.15 265);
-  --color-tier-1: oklch(0.7 0.16 150);
-  --color-tier-2: oklch(0.7 0.15 230);
-  --color-tier-3: oklch(0.68 0.18 300);
-  --radius: 0.75rem;
+  --font-sans: 'Nunito', 'Avenir Next Rounded', 'Varela Round', ui-rounded, system-ui, -apple-system, 'Segoe UI',
+    sans-serif;
+
+  --color-background: #0b1020;
+  --color-foreground: #f3efe4;
+  /* Glass card: sky-2 with alpha so the starfield shows through. */
+  --color-card: rgb(21 27 47 / 0.78);
+  --color-card-foreground: #f3efe4;
+  --color-primary: #5b8def;
+  --color-primary-foreground: #0b1020;
+  --color-secondary: #1c2440;
+  --color-secondary-foreground: #e6e1d3;
+  --color-muted: #1a2138;
+  --color-muted-foreground: #a3a9bf;
+  --color-accent: #e8c56b;
+  --color-accent-foreground: #241a05;
+  --color-destructive: #e08a99;
+  --color-destructive-foreground: #1b0d12;
+  --color-approve: #7fd8b4;
+  --color-approve-foreground: #06261a;
+  --color-deny: #c96b7a;
+  --color-deny-foreground: #fff5f7;
+  --color-border: rgb(232 197 107 / 0.16);
+  --color-input: rgb(243 239 228 / 0.16);
+  --color-ring: #e8c56b;
+  --color-star: #e8c56b;
+  --color-ivory: #f3efe4;
+  --color-sky-1: #0b1020;
+  --color-sky-2: #151b2f;
+  --color-tier-1: #7fd8b4;
+  --color-tier-2: #5b8def;
+  --color-tier-3: #c48af5;
+  --radius: 1rem;
+
+  --animate-pop: pop 480ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+  --animate-star-tick: star-tick 700ms ease-out both;
+  --animate-flare-in: flare-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+  --animate-twinkle: twinkle 9s ease-in-out infinite alternate;
+
+  @keyframes pop {
+    0% {
+      transform: scale(0.85);
+      opacity: 0.4;
+    }
+    60% {
+      transform: scale(1.08);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes star-tick {
+    0% {
+      transform: scale(0.6) rotate(-20deg);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.2) rotate(8deg);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(1) rotate(0);
+      opacity: 1;
+    }
+  }
+  @keyframes flare-in {
+    0% {
+      transform: translateY(24px) scale(0.94);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes twinkle {
+    0% {
+      opacity: 0.55;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
   }
+  html {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-sans);
+    background-color: var(--color-sky-1);
+  }
+  ::selection {
+    background: rgb(232 197 107 / 0.35);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Shared night sky: a slow vertical gradient from deep sky into sky-2. */
+  .sky {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgb(91 141 239 / 0.18), transparent 60%),
+      linear-gradient(180deg, var(--color-sky-1) 0%, var(--color-sky-2) 100%);
+    background-attachment: fixed;
+  }
+
+  /* Kid surface: the same sky plus a soft CSS starfield (no images, no JS). */
+  .sky-kid {
+    position: relative;
+    isolation: isolate;
+  }
+  .sky-kid::before,
+  .sky-kid::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-repeat: repeat;
+  }
+  .sky-kid::before {
+    background-image:
+      radial-gradient(1.8px 1.8px at 12% 18%, rgb(243 239 228 / 0.95), transparent 60%),
+      radial-gradient(1.4px 1.4px at 33% 72%, rgb(243 239 228 / 0.8), transparent 60%),
+      radial-gradient(2.2px 2.2px at 58% 28%, rgb(232 197 107 / 0.95), transparent 60%),
+      radial-gradient(1.4px 1.4px at 74% 64%, rgb(243 239 228 / 0.7), transparent 60%),
+      radial-gradient(1.8px 1.8px at 88% 12%, rgb(243 239 228 / 0.9), transparent 60%),
+      radial-gradient(1.6px 1.6px at 21% 88%, rgb(232 197 107 / 0.8), transparent 60%),
+      radial-gradient(1.4px 1.4px at 46% 50%, rgb(243 239 228 / 0.65), transparent 60%),
+      radial-gradient(2px 2px at 92% 82%, rgb(243 239 228 / 0.85), transparent 60%),
+      radial-gradient(1.4px 1.4px at 5% 55%, rgb(243 239 228 / 0.6), transparent 60%),
+      radial-gradient(1.6px 1.6px at 65% 92%, rgb(243 239 228 / 0.7), transparent 60%);
+    background-size: 460px 460px;
+    animation: var(--animate-twinkle);
+  }
+  .sky-kid::after {
+    background-image:
+      radial-gradient(1px 1px at 8% 40%, rgb(243 239 228 / 0.5), transparent 60%),
+      radial-gradient(1px 1px at 40% 10%, rgb(243 239 228 / 0.45), transparent 60%),
+      radial-gradient(1px 1px at 66% 90%, rgb(232 197 107 / 0.55), transparent 60%),
+      radial-gradient(1px 1px at 82% 46%, rgb(243 239 228 / 0.4), transparent 60%);
+    background-size: 340px 340px;
+    opacity: 0.8;
+  }
+
+  /* Glass tile: used by Card. Admin surfaces drop the blur for scan speed. */
+  .glass {
+    background-color: var(--color-card);
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    box-shadow:
+      0 1px 0 rgb(243 239 228 / 0.06) inset,
+      0 12px 32px -16px rgb(0 0 0 / 0.7);
+  }
+  .sky-admin .glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background-color: var(--color-sky-2);
+  }
+
+  /* Mission badge: Wins patches. */
+  .mission-badge {
+    clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+    background: linear-gradient(160deg, rgb(232 197 107 / 0.95), rgb(200 150 60 / 0.9));
+    color: var(--color-accent-foreground);
   }
 }

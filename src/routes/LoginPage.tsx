@@ -63,7 +63,7 @@ export function LoginPage() {
         <div className="flex justify-center">
           <PhaseBadge />
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Who is this?</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Who is this?</h1>
         <p className="text-sm text-muted-foreground">
           {familyName}. Pick your name. Kids go straight in; parents share one login and enter the admin PIN.
         </p>
@@ -75,14 +75,14 @@ export function LoginPage() {
             key={kid.id}
             type="button"
             onClick={() => pick(kid)}
-            className="group rounded-xl border bg-card p-5 text-left shadow-sm transition-colors hover:border-primary hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="glass group rounded-2xl border p-5 text-left transition-[border-color,transform] hover:-translate-y-0.5 hover:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:hover:translate-y-0"
           >
             <div className="flex items-center gap-3">
-              <span className="flex size-10 items-center justify-center rounded-full bg-secondary text-primary group-hover:bg-card">
+              <span className="flex size-11 items-center justify-center rounded-full bg-sky-1 text-star ring-1 ring-accent/40">
                 {kid.role === 'teen' ? <Sparkles className="size-5" aria-hidden /> : <UserRound className="size-5" aria-hidden />}
               </span>
               <div>
-                <div className="font-semibold">{kid.name}</div>
+                <div className="text-lg font-bold">{kid.name}</div>
                 <div className="text-xs text-muted-foreground">{ROLE_LABEL[kid.role]}</div>
               </div>
             </div>

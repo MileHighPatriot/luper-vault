@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Coins, Gift, Home, Trophy, type LucideIcon } from 'lucide-react'
+import { Gift, Home, Rocket, Trophy, type LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface KidTab {
@@ -10,7 +10,7 @@ interface KidTab {
 
 const TABS: KidTab[] = [
   { to: '/home', label: 'Home', icon: Home },
-  { to: '/earn', label: 'Earn', icon: Coins },
+  { to: '/earn', label: 'Earn', icon: Rocket },
   { to: '/rewards', label: 'Rewards', icon: Gift },
   { to: '/wins', label: 'Wins', icon: Trophy },
 ]
@@ -23,17 +23,17 @@ export function KidLayout() {
   return (
     <div className="flex flex-col gap-6">
       <nav aria-label="Kid sections" className="-mx-4 overflow-x-auto px-4">
-        <ul className="flex gap-1 border-b">
+        <ul className="glass inline-flex gap-1 rounded-full border p-1">
           {TABS.map(({ to, label, icon: Icon }) => (
             <li key={to}>
               <NavLink
                 to={to}
                 className={({ isActive }) =>
                   cn(
-                    '-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+                    'flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors',
                     isActive
-                      ? 'border-primary text-foreground'
-                      : 'border-transparent text-muted-foreground hover:text-foreground',
+                      ? 'bg-accent text-accent-foreground shadow-[0_6px_18px_-10px] shadow-accent'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
                   )
                 }
               >

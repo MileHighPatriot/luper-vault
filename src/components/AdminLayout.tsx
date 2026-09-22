@@ -27,17 +27,17 @@ export function AdminLayout() {
 
   return (
     <div className="flex flex-col gap-6">
-      <nav aria-label="Parent sections" className="-mx-4 overflow-x-auto px-4">
-        <ul className="flex gap-1 border-b">
+      <nav aria-label="Ground Control sections" className="-mx-4 overflow-x-auto px-4">
+        <ul className="flex gap-1 border-b border-ivory/10">
           {TABS.map(({ to, label, icon: Icon }) => (
             <li key={to}>
               <NavLink
                 to={to}
                 className={({ isActive }) =>
                   cn(
-                    '-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+                    '-mb-px flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-semibold transition-colors',
                     isActive
-                      ? 'border-primary text-foreground'
+                      ? 'border-accent text-foreground'
                       : 'border-transparent text-muted-foreground hover:text-foreground',
                   )
                 }
@@ -45,7 +45,7 @@ export function AdminLayout() {
                 <Icon className="size-4" aria-hidden />
                 {label}
                 {label === 'Inbox' && pendingCount > 0 && (
-                  <span className="rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground tabular-nums">
+                  <span className="rounded-full bg-accent px-1.5 text-xs font-bold text-accent-foreground tabular-nums">
                     {pendingCount}
                   </span>
                 )}
