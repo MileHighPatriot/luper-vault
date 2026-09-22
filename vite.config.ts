@@ -18,6 +18,14 @@ export default defineConfig({
     port: 4177,
     strictPort: true,
     host: '127.0.0.1',
+    // Public tunnels and hosts (Cloudflare, Pages) are not localhost.
+    allowedHosts: true,
+  },
+  preview: {
+    port: 4188,
+    strictPort: true,
+    host: '127.0.0.1',
+    allowedHosts: true,
   },
   test: {
     include: ['src/**/*.test.ts'],
