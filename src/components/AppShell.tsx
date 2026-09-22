@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom'
 import { BookOpenText, Clock, LogOut, Rocket } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
+import { useRepositoryValue } from '@/data/RepositoryContext'
 import { useHouseholdClock } from '@/data/useHouseholdClock'
 import { isBeforeGoLive } from '@/lib/time/calendar'
 import { formatDenver } from '@/lib/time/denver'
@@ -11,8 +12,8 @@ export const APP_NAME = 'The Luper Ledger'
 
 export function PhaseBadge() {
   return (
-    <Badge variant="accent" title="Phase 7 of polish: surprise drops. The Monday-ready core is phases 1–6.">
-      Phase 7
+    <Badge variant="accent" title="Phase 8 of polish: admin PIN, Settings, Audit. The Monday-ready core is phases 1–6.">
+      Phase 8
     </Badge>
   )
 }
@@ -35,6 +36,7 @@ function GoLiveBanner({ forceLive }: { forceLive: boolean }) {
 export function AppShell() {
   const { user, isAdmin, logout } = useAuth()
   const { now, isOverridden, forceLive } = useHouseholdClock()
+  const familyName = useRepositoryValue((r) => r.getFamilySettings().familyName)
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -42,7 +44,12 @@ export function AppShell() {
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
             <BookOpenText className="size-5 text-primary" aria-hidden />
-            <span>{APP_NAME}</span>
+            <span className="flex flex-col leading-tight">
+              <span>{APP_NAME}</span>
+              <span className="text-xs font-normal text-muted-foreground" data-testid="family-name">
+                {familyName}
+              </span>
+            </span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
             {isAdmin && isOverridden && (
@@ -81,8 +88,8 @@ export function AppShell() {
 
       <footer className="border-t">
         <div className="mx-auto w-full max-w-4xl px-4 py-3 text-xs text-muted-foreground">
-          Phase 7 of polish — surprise drops. Earn Mon–Sat until 8:00 PM Denver; Sunday is reward day. Go-live Mon Sep
-          28, 2026; month and quarter tiers open Oct 1.
+          Phase 8 of polish — admin PIN, Settings, Audit. Earn Mon–Sat until 8:00 PM Denver; Sunday is reward day.
+          Go-live Mon Sep 28, 2026; month and quarter tiers open Oct 1.
         </div>
       </footer>
     </div>

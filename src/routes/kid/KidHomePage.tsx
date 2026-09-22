@@ -61,7 +61,7 @@ function FamilyMeter({ meter }: { meter: VaultMeter }) {
 export function KidHomePage() {
   const { user } = useAuth()
   const meters = useRepositoryValue((r) => r.getMeters())
-  const verse = useRepositoryValue((r) => r.getSettings().verse)
+  const verse = useRepositoryValue((r) => r.getFamilySettings().verse)
   const lastMovedAt = useRepositoryValue((r) => r.getVaultLastMovedAt())
   const { now, window: earn } = useHouseholdClock()
   const chips = countdowns(now)

@@ -8,14 +8,8 @@ export interface Session {
   startedAt: string
 }
 
-// TODO(prod-auth): Phase 1 only. The PIN is a build-time constant so the
-// family can start using the app; real hashing / server-side auth is a later
-// (non-Phase 1) ticket. Override locally with VITE_ADMIN_PIN in .env.local.
-export const ADMIN_PIN: string = import.meta.env.VITE_ADMIN_PIN ?? '1234'
-
-export function verifyAdminPin(pin: string): boolean {
-  return pin.trim() === ADMIN_PIN
-}
+// The admin PIN lives in repository settings (Phase 8). VITE_ADMIN_PIN only
+// seeds the first launch; see `src/lib/pin.ts` for the TODO(prod-auth) note.
 
 export function loadSession(storage: Storage): Session | null {
   const raw = storage.getItem(SESSION_KEY)

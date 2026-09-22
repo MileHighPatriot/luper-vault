@@ -18,6 +18,7 @@ const ROLE_LABEL: Record<User['role'], string> = {
 export function LoginPage() {
   const { user, login } = useAuth()
   const users = useRepositoryValue((repo) => repo.listUsers())
+  const familyName = useRepositoryValue((repo) => repo.getFamilySettings().familyName)
   const navigate = useNavigate()
   const location = useLocation()
   const [pendingAdmin, setPendingAdmin] = useState<User | null>(null)
@@ -64,7 +65,7 @@ export function LoginPage() {
         </div>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Who is this?</h1>
         <p className="text-sm text-muted-foreground">
-          Pick your name. Parents share one login and enter the admin PIN.
+          {familyName}. Pick your name. Kids go straight in; parents share one login and enter the admin PIN.
         </p>
       </div>
 

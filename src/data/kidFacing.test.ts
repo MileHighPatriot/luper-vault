@@ -108,10 +108,11 @@ describe('kid safety: repository surface', () => {
     const payloads: unknown[] = [
       ...repo.listEarnActsForKid('kameron'),
       ...repo.listKidPendingClaims('kameron'),
-      repo.getSettings(),
+      repo.getFamilySettings(),
     ]
     const json = JSON.stringify(payloads)
     expect(json).not.toMatch(/"points"/)
     expect(json).not.toMatch(/requestedPoints|editedPoints/)
+    expect(json).not.toMatch(/adminPinHash|clockOverride|forceLive/)
   })
 })

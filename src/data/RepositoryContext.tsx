@@ -8,8 +8,11 @@ const RepositoryContext = createContext<Repository | null>(null)
 /** VITE_FORCE_LIVE=true lets parents test claims before the 2026-09-28 go-live. */
 const ENV_FORCE_LIVE = import.meta.env.VITE_FORCE_LIVE === 'true'
 
+/** First-launch admin PIN. After that, Admin → Settings owns the PIN. */
+const ENV_ADMIN_PIN: string | undefined = import.meta.env.VITE_ADMIN_PIN?.trim() || undefined
+
 function createDefaultRepository(): Repository {
-  const options = { envForceLive: ENV_FORCE_LIVE }
+  const options = { envForceLive: ENV_FORCE_LIVE, defaultAdminPin: ENV_ADMIN_PIN }
   try {
     return createLocalStorageRepository(window.localStorage, options)
   } catch {

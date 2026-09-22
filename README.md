@@ -2,6 +2,8 @@
 
 A family shared-reward app. Kids and parents earn approved points that pour into three **family** vault meters; nobody has a personal score to compete over. (Constellation Crew skin comes later.)
 
+> **Phase 8 of polish — Admin PIN, Settings, Audit.** The shared parent login needs a real, changeable **admin PIN** (default `2580`, first launch seeded from `VITE_ADMIN_PIN`). Kids still open with no PIN. Admin → **Settings** edits the PIN (with confirm), the Sky log verse, the family display name, and a kid-sound mute flag, and shows the go-live / America/Denver note read-only. Admin → **Audit** is a searchable log of every ledger write and surprise drop with kid, type (Path A / B / surprise), and date-range filters. View-only; void/undo is a later ticket.
+>
 > **Phase 7 of polish — Surprise drops.** Parents can push a mid-cycle treat to one kid (candy, a coffee, a few dollars). It is not on the Week / Month / Quarter board, it is not Path A or B, and it does not move the vault meters. Soft caps: **1 per kid per earn week** (Monday–Saturday; Sunday counts on that same week) and **3 per kid per calendar month**. The kid sees a Home flare once, then a surprise patch on Wins.
 >
 > **Phase 6 of 6 — Calendar gate. The Monday-ready core is complete.**
@@ -18,7 +20,35 @@ A family shared-reward app. Kids and parents earn approved points that pour into
 | 4 | Kid Home + Earn (family meters, verse card, "I did it" claims, Path B read-only) | done |
 | 5 | Rewards builder, kid Rewards (locked / unlocked per tier), Wins reel, one-time announce banner | done |
 | 6 | Calendar gate: go-live, Mon–Sat 8 PM Denver cutoff, Sunday reward day, Oct 1 tier opening, Clock panel | done |
-| 7 | Surprise drops: parent send, week/month caps, one-time Home flare, Wins patch | **this repo** |
+| 7 | Surprise drops: parent send, week/month caps, one-time Home flare, Wins patch | done |
+| 8 | Admin PIN, light Settings, searchable Audit log | **this repo** |
+
+## Admin PIN, Settings, Audit (Phase 8 of polish)
+
+### How to set the admin PIN
+
+1. **First launch:** the stored PIN is seeded from `VITE_ADMIN_PIN` in `.env.local` (copy `.env.example`). If the variable is unset it is **`2580`**. The GitHub Pages build has no `.env.local`, so it uses `2580`.
+2. **After that:** Admin → **Settings → Admin PIN**. Enter the current PIN, a new 4–8 digit PIN, and the confirmation. The change is stored in this browser's `localStorage` snapshot (`settings.adminPinHash`, a short salted digest, not the plain PIN). Changing `VITE_ADMIN_PIN` later does **not** override a stored PIN.
+3. **Kids never enter a PIN.** Kameron, Alea, and Christopher tap their name and go straight in. Only the shared parent login is gated, and kids hitting `/admin/*` are still redirected home.
+4. **Forgot it:** clearing the browser's site data resets the PIN to the build default, but also clears the ledger. Keep the PIN written down.
+
+The digest is `src/lib/pin.ts` (FNV-1a over a salted PIN). It keeps the PIN out of casual view; it is not real security. `TODO(prod-auth)` still stands.
+
+### Settings (`/admin/settings`)
+
+- **Family display name** — shown under the app title in the header and on the login screen.
+- **Sky log verse for the week** — the verse card on kid Home reads it live.
+- **Kid sounds** — a mute switch saved now; the sounds themselves arrive with the Phase 9 skin.
+- **Household clock** — read-only: America/Denver, go-live Monday 2026-09-28, Mon–Sat until 8:00 PM, tiers open 2026-10-01.
+- **Admin PIN** — change with current PIN + confirm (see above).
+
+Kids read settings only through `getFamilySettings()` (family name, verse, mute flag). The PIN digest and dev switches never reach kid code.
+
+### Audit (`/admin/audit`)
+
+One list of every **ledger write** (Inbox approvals = Path A, Add earn stamps and simulated points = Path B) and every **surprise drop** (with its pending / seen / canceled status), newest first. Columns: Denver time, who, what, points (ledger rows only; surprises show —), type, source, note. Filters: free-text search (act, note, name, source), who (each kid or Parent), type (everything / Path A / Path B / surprises), and a Denver date range. Shows the newest 200 matches. The old `/admin/ledger` URL redirects here.
+
+View-only in this phase. `TODO(audit-void)` in `Repository.adminListAuditEvents` marks where void/undo will land.
 
 ## Surprise drops (Phase 7 of polish)
 
@@ -82,7 +112,7 @@ Pick a name on the login screen. Session is remembered in `localStorage`.
 | Christopher | teen | teen |
 | Admin (shared parent login) | admin | — |
 
-Admin PIN defaults to `1234`. Override by copying `.env.example` to `.env.local` and setting `VITE_ADMIN_PIN` (the same file holds `VITE_FORCE_LIVE`). This is a **Phase 1 placeholder** (`TODO(prod-auth)` in `src/auth/session.ts`), not real security.
+Admin PIN defaults to `2580` on first launch (or `VITE_ADMIN_PIN` from `.env.local`, which also holds `VITE_FORCE_LIVE`), then is changed under Admin → Settings. See "How to set the admin PIN" above. Kids have no PIN.
 
 ### Kid screens (little / teen roles)
 
@@ -95,7 +125,7 @@ Logging in as Kameron, Alea, or Christopher lands on `/home` with tabs Home · E
   - Path A rows have an **"I did it"** button that creates a pending claim (the same `PendingClaim` the parent Inbox consumes). The row then shows **"Waiting for Ground Control"** until a parent approves or denies it. A kid cannot queue the same act twice while one is pending. Outside the earn window (before go-live, Sunday, or after 8 PM Denver) the buttons are replaced by "Closed" and a notice explains why and when claims reopen.
   - Path B rows show **"Parent adds this"** with no button.
 
-Kid-facing data comes only from `listEarnActsForKid`, `listKidPendingClaims`, `getMeters`, `getVaultLastMovedAt`, `getEarnWindow`, `listRewardsForKids`, `listWins`, and `getSettings`, none of which carry point values or per-person totals. Kids hitting any `/admin/*` URL are redirected home.
+Kid-facing data comes only from `listEarnActsForKid`, `listKidPendingClaims`, `getMeters`, `getVaultLastMovedAt`, `getEarnWindow`, `listRewardsForKids`, `listWins`, `listPendingSurprisesForKid`, `listSeenSurprisesForKid`, and `getFamilySettings`, none of which carry point values, per-person totals, or the PIN digest. Kids hitting any `/admin/*` URL are redirected home.
 
 ### Parent screens (admin role)
 
@@ -105,7 +135,8 @@ After logging in as Admin, the parent console links to the tabs under `/admin`:
 - **Add earn** (`/admin/add-earn`) — pick an earner (Kameron, Alea, Christopher, or Parent = the admin logging their own act), then a **Path B only** act. Kids see their band's Path B stamps (Honest, School growth, Bible verse, ...) plus the conduct acts for their audience (Caught good, Outstanding day, Day demerit, Serious); Parent sees the parent list including the parent day demerit. Path A acts are not offered and are rejected by the repository if forced. Optional note. Submit writes the ledger and moves the meters immediately, then shows a "Vault updated" banner with the 50/30/20 split and a link to the Ledger.
 - **Rewards** (`/admin/rewards`) — one list per vault tier. Add a reward (title + blurb), edit inline, deactivate / reactivate (inactive rewards are hidden from kids but kept), and **Announce** (stamps the reward, records an "Announced" Win, and queues the one-time banner for every kid; announcing twice is a no-op). Each tier header shows whether its meter is currently unlocked.
 - **Clock** (`/admin/clock`) — Denver now, go-live status, earn window open / closed with reason, day / cutoff flags, month and quarter tier status with season label, the **FORCE_LIVE** toggle, a **clock preview** (presets for before go-live, go-live Monday, Mon 8:01 PM, Tue 3 PM, Sat 8:30 PM, Sunday, or any custom instant) that freezes the household clock for every gate until cleared, and the same countdown chips the kids see.
-- **Ledger** (`/admin/ledger`) — the last 50 approved events (who, act, points, path, source, note). Sources are `Inbox` (approved claim), `Add earn` (parent stamp), or `Simulated` (verify screen). Pending and denied claims never appear here.
+- **Audit** (`/admin/audit`) — every approved ledger event plus every surprise drop, searchable and filterable (see Phase 8 above). Sources are `Inbox` (approved claim), `Add earn` (parent stamp), `Simulated` (verify screen), or `Surprise`. Pending and denied claims never appear here. `/admin/ledger` redirects here.
+- **Settings** (`/admin/settings`) — family name, Sky log verse, kid-sound mute, read-only clock note, and the admin PIN change form.
 - **Verify** (`/admin/verify`) — meter engine and seed checks (see below).
 - **Dev tools** (`/admin/dev`) — queue a Path A claim on a kid's behalf (kids normally claim from their own Earn screen), or **Seed demo claims** (two per kid, skipping acts already pending). Path B acts cannot be queued. Also lists recent claims of every status and offers a full reset of claims, ledger, and meters.
 
@@ -145,7 +176,7 @@ Phase 1 uses a **repository layer over `localStorage`** rather than a server + S
 
 - `src/data/types.ts` — tables: `users`, `earnActs`, `ledger` (approved points only), `pendingClaims` (status `pending | approved | denied`, `requestedPoints`, optional `editedPoints` / `parentNote`), `vaultMeters` (T1/T2/T3), `rewards` (tier, title, blurb, active, optional announcement with per-kid seen list), `wins` (unlock / announce events), `settings` (verse placeholder, schema version, `forceLive`, dev `clockOverride`).
 - `src/data/repository.ts` — `StorageAdapter` interface (`load` / `save` / `clear`) and the typed `Repository` on top of it. Claim lifecycle lives here: `queueClaim` (Path A, kids only), `approveClaim`, `denyClaim`, `approveAllPendingOn(dateKey)`; Path B stamping is `adminAddEarn` with `adminListPathBActsFor(earnerId)` for the eligible list; plus other `admin*` helpers.
-- Schema version is `4`. `migrateDatabase` upgrades older snapshots in place (v2 → adds seeded `rewards` and an empty `wins` table; v3 → adds `settings.forceLive` and `settings.clockOverride`), keeping ledger and claims; anything older than v2 is reseeded.
+- Schema version is `6`. `migrateDatabase` upgrades older snapshots in place (v2 → adds seeded `rewards` and an empty `wins` table; v3 → adds `settings.forceLive` and `settings.clockOverride`; v4 → adds `surpriseDrops`; v5 → adds `settings.adminPinHash` (seeded from `VITE_ADMIN_PIN` or `2580`), `settings.familyName`, and `settings.muteKidSounds`), keeping ledger and claims; anything older than v2 is reseeded.
 - `src/data/localStorageRepository.ts` — the adapter the app uses.
 - `src/data/memoryRepository.ts` — in-memory adapter for tests and storage-less environments.
 
@@ -188,9 +219,9 @@ Key exports: `splitPoints(points)`, `applyLedgerEntry(meters, points)`, `initial
 ```
 src/
   auth/          session + AuthProvider (login/logout, PIN check)
-  components/    AppShell (title + phase badge), AdminLayout + KidLayout tabs, MeterStrip, AnnouncementBanner, SurpriseFlare, route guards, ui/ primitives
-  data/          types, repository (claims, ledger, rewards, calendar gate, surprise drops), adapters, seed/, useHouseholdClock, tests
+  components/    AppShell (title + family name + phase badge), AdminLayout + KidLayout tabs, MeterStrip, AnnouncementBanner, SurpriseFlare, route guards, ui/ primitives
+  data/          types, repository (claims, ledger, rewards, calendar gate, surprise drops, PIN, settings, audit), adapters, seed/, useHouseholdClock, tests
   engine/        meter math + tests
-  lib/time/      America/Denver helpers, household calendar rules + countdowns, surprise earn-week keys, tests
-  routes/        LoginPage, ParentConsole, InboxPage, AddEarnPage, RewardsBuilderPage, SurprisePage, LedgerPage, ClockPage, DevToolsPage, AdminVerifyPage, kid/ (Home, Earn, Rewards, Wins)
+  lib/           pin.ts (PIN digest + format), time/ (America/Denver helpers, household calendar rules + countdowns, surprise earn-week keys, tests)
+  routes/        LoginPage, ParentConsole, InboxPage, AddEarnPage, RewardsBuilderPage, SurprisePage, AuditPage, SettingsPage, ClockPage, DevToolsPage, AdminVerifyPage, kid/ (Home, Earn, Rewards, Wins)
 ```

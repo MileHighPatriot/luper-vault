@@ -173,6 +173,12 @@ export interface Settings {
   schemaVersion: number
   verse: string
   seededAt: string
+  /** Digest of the shared parent PIN. See `src/lib/pin.ts`. Never shown to kids. */
+  adminPinHash: string
+  /** Shown in the header and on the login screen. */
+  familyName: string
+  /** Kid UI sounds arrive with the Phase 9 skin; the switch exists now so parents can pre-set it. */
+  muteKidSounds: boolean
   /**
    * Parent testing switch: treat the app as live before go-live (2026-09-28).
    * Never bypasses Sunday or the 8 PM cutoff. Also settable via VITE_FORCE_LIVE.
@@ -183,6 +189,49 @@ export interface Settings {
    * so parents can preview Sunday mode or the cutoff. Cleared from the Clock panel.
    */
   clockOverride: string | null
+}
+
+/** KID-FACING slice of settings. No PIN digest, no dev switches. */
+export interface FamilySettings {
+  familyName: string
+  verse: string
+  muteKidSounds: boolean
+}
+
+export type AuditKind = 'ledger' | 'surprise'
+
+/** Audit filter value: Path A approvals, Path B stamps, or surprise drops. */
+export type AuditPath = 'A' | 'B' | 'surprise'
+
+/**
+ * ADMIN ONLY. One row of the audit log: a ledger entry (points) or a surprise
+ * drop (no points). Read-only in Phase 8; void/undo is a later ticket.
+ */
+export interface AuditEvent {
+  id: string
+  kind: AuditKind
+  at: string
+  userId: string
+  userName: string
+  title: string
+  /** Approved points for ledger rows; null for surprises. */
+  points: number | null
+  path: AuditPath
+  /** Human label: Inbox, Add earn, Simulated, or Surprise. */
+  source: string
+  status?: SurpriseStatus
+  note: string
+}
+
+export interface AuditFilter {
+  userId?: string
+  path?: AuditPath | 'all'
+  /** Denver `YYYY-MM-DD`, inclusive. */
+  from?: string
+  to?: string
+  /** Case-insensitive match on title, note, source, or name. */
+  query?: string
+  limit?: number
 }
 
 export interface Database {

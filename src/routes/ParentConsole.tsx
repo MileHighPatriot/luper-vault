@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { CirclePlus, Clock, Gauge, Gift, Inbox, ScrollText, Sparkles, Wrench, type LucideIcon } from 'lucide-react'
+import { CirclePlus, Clock, Gauge, Gift, Inbox, ScrollText, Settings, Sparkles, Wrench, type LucideIcon } from 'lucide-react'
 import { useRepositoryValue } from '@/data/RepositoryContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,7 +18,8 @@ const CARDS: ConsoleCard[] = [
   { to: '/admin/add-earn', label: 'Add earn', description: 'Stamp Path B earns and demerits directly.', icon: CirclePlus, primary: true },
   { to: '/admin/rewards', label: 'Rewards', description: 'Set the week, month, and quarter rewards. Announce unlocks.', icon: Gift },
   { to: '/admin/surprise', label: 'Surprise', description: 'Send an extra treat to one kid. Does not move the vault.', icon: Sparkles, primary: true },
-  { to: '/admin/ledger', label: 'Ledger', description: 'Recent approved events.', icon: ScrollText },
+  { to: '/admin/audit', label: 'Audit', description: 'Search approvals, Add earns, and surprises by kid, type, and date.', icon: ScrollText },
+  { to: '/admin/settings', label: 'Settings', description: 'Family name, Sky log verse, kid sounds, and the admin PIN.', icon: Settings },
   { to: '/admin/clock', label: 'Clock', description: 'Denver time, go-live and earn-window status, FORCE_LIVE.', icon: Clock },
   { to: '/admin/verify', label: 'Verify', description: 'Meter engine and seed catalog checks.', icon: Gauge },
   { to: '/admin/dev', label: 'Dev tools', description: 'Queue demo claims and reset the store.', icon: Wrench },
@@ -57,7 +58,7 @@ export function ParentConsole() {
         ))}
       </div>
       <p className="text-xs text-muted-foreground">
-        Monday-ready core is in. Phase 7 adds surprise drops: one per kid per earn week, three per month. They never move the meters.
+        Monday-ready core is in. Phase 7 added surprise drops; Phase 8 adds the admin PIN, Settings, and the Audit log.
       </p>
     </div>
   )

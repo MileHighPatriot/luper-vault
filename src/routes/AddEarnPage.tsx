@@ -142,7 +142,7 @@ export function AddEarnPage() {
           </div>
           <div className="flex items-center gap-2 sm:shrink-0">
             <Button asChild size="sm" variant="outline">
-              <Link to="/admin/ledger">View ledger</Link>
+              <Link to="/admin/audit">View audit</Link>
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setConfirmation(null)} aria-label="Dismiss">
               <X className="size-4" aria-hidden />

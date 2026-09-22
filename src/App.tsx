@@ -7,13 +7,14 @@ import { KidLayout } from '@/components/KidLayout'
 import { RequireAdmin, RequireAuth, RequireKid } from '@/components/RequireAuth'
 import { AddEarnPage } from '@/routes/AddEarnPage'
 import { AdminVerifyPage } from '@/routes/AdminVerifyPage'
+import { AuditPage } from '@/routes/AuditPage'
 import { DevToolsPage } from '@/routes/DevToolsPage'
 import { InboxPage } from '@/routes/InboxPage'
-import { LedgerPage } from '@/routes/LedgerPage'
 import { LoginPage } from '@/routes/LoginPage'
 import { ClockPage } from '@/routes/ClockPage'
 import { ParentConsole } from '@/routes/ParentConsole'
 import { RewardsBuilderPage } from '@/routes/RewardsBuilderPage'
+import { SettingsPage } from '@/routes/SettingsPage'
 import { SurprisePage } from '@/routes/SurprisePage'
 import { KidEarnPage } from '@/routes/kid/KidEarnPage'
 import { KidHomePage } from '@/routes/kid/KidHomePage'
@@ -52,7 +53,9 @@ export default function App() {
                   <Route path="add-earn" element={<AddEarnPage />} />
                   <Route path="rewards" element={<RewardsBuilderPage />} />
                   <Route path="surprise" element={<SurprisePage />} />
-                  <Route path="ledger" element={<LedgerPage />} />
+                  <Route path="audit" element={<AuditPage />} />
+                  <Route path="ledger" element={<Navigate to="/admin/audit" replace />} />
+                  <Route path="settings" element={<SettingsPage />} />
                   <Route path="clock" element={<ClockPage />} />
                   <Route path="verify" element={<AdminVerifyPage />} />
                   <Route path="dev" element={<DevToolsPage />} />

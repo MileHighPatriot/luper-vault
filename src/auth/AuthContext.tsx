@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import type { User } from '@/data/types'
 import { useRepository } from '@/data/RepositoryContext'
-import { clearSession, loadSession, saveSession, verifyAdminPin, type Session } from './session'
+import { clearSession, loadSession, saveSession, type Session } from './session'
 
 export type LoginResult = { ok: true } | { ok: false; reason: 'unknown-user' | 'bad-pin' }
 
@@ -32,7 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (userId: string, pin?: string): LoginResult => {
       const target = repo.getUser(userId)
       if (!target) return { ok: false, reason: 'unknown-user' }
-      if (target.role === 'admin' && !verifyAdminPin(pin ?? '')) {
+      // Kids never enter a PIN; only the shared parent login is gated.
+      if (target.role === 'admin' && !repo.verifyAdminPin(pin ?? '')) {
         return { ok: false, reason: 'bad-pin' }
       }
       const next: Session = { userId: target.id, role: target.role, startedAt: new Date().toISOString() }

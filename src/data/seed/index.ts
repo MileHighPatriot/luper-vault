@@ -1,5 +1,6 @@
 import type { Database } from '@/data/types'
 import { initialMeters } from '@/engine/meters'
+import { FALLBACK_ADMIN_PIN, hashPin } from '@/lib/pin'
 import { SEED_ACTS } from './acts'
 import { buildSeedRewards } from './rewards'
 import { SEED_USERS } from './users'
@@ -7,15 +8,22 @@ import { SEED_USERS } from './users'
 /**
  * v1 Phase 1 foundation · v2 Phase 2 claim status + ledger source ·
  * v3 Phase 5 rewards + wins tables · v4 Phase 6 forceLive + clockOverride settings ·
- * v5 Phase 7 surprise drops.
+ * v5 Phase 7 surprise drops · v6 Phase 8 admin PIN digest, family name, mute flag.
  */
-export const SCHEMA_VERSION = 5
+export const SCHEMA_VERSION = 6
 
-/** Placeholder until the settings screen lands in a later phase. */
+/** Placeholder until a parent edits it in Settings. */
 export const PLACEHOLDER_VERSE =
   'Whatever you do, work at it with all your heart. — Colossians 3:23 (placeholder)'
 
-export function buildSeedDatabase(now: Date = new Date()): Database {
+export const DEFAULT_FAMILY_NAME = 'The Lupers'
+
+export interface SeedOptions {
+  /** Initial admin PIN (from VITE_ADMIN_PIN). Only used when no PIN is stored yet. */
+  adminPin?: string
+}
+
+export function buildSeedDatabase(now: Date = new Date(), options: SeedOptions = {}): Database {
   return {
     users: [...SEED_USERS],
     earnActs: [...SEED_ACTS],
@@ -31,6 +39,9 @@ export function buildSeedDatabase(now: Date = new Date()): Database {
       seededAt: now.toISOString(),
       forceLive: false,
       clockOverride: null,
+      adminPinHash: hashPin(options.adminPin ?? FALLBACK_ADMIN_PIN),
+      familyName: DEFAULT_FAMILY_NAME,
+      muteKidSounds: false,
     },
   }
 }
@@ -39,7 +50,7 @@ export function buildSeedDatabase(now: Date = new Date()): Database {
  * Bring an older snapshot up to the current schema, or return null when it is
  * too old to migrate (caller reseeds). Only additive steps live here.
  */
-export function migrateDatabase(db: Database, now: Date = new Date()): Database | null {
+export function migrateDatabase(db: Database, now: Date = new Date(), options: SeedOptions = {}): Database | null {
   let version = db.settings?.schemaVersion
   if (typeof version !== 'number' || version < 2) return null
   let next = db
@@ -54,6 +65,18 @@ export function migrateDatabase(db: Database, now: Date = new Date()): Database 
   if (version === 4) {
     next = { ...next, surpriseDrops: next.surpriseDrops ?? [] }
     version = 5
+  }
+  if (version === 5) {
+    next = {
+      ...next,
+      settings: {
+        ...next.settings,
+        adminPinHash: hashPin(options.adminPin ?? FALLBACK_ADMIN_PIN),
+        familyName: DEFAULT_FAMILY_NAME,
+        muteKidSounds: false,
+      },
+    }
+    version = 6
   }
   if (version !== SCHEMA_VERSION) return null
   return { ...next, settings: { ...next.settings, schemaVersion: SCHEMA_VERSION } }

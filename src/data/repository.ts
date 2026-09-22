@@ -1,8 +1,11 @@
 import type {
+  AuditEvent,
+  AuditFilter,
   Band,
   Database,
   EarnAct,
   EarnPath,
+  FamilySettings,
   KidEarnAct,
   KidPendingClaim,
   KidReward,
@@ -19,6 +22,7 @@ import type {
   Win,
 } from './types'
 import { applyLedgerEntry, isMeterFull } from '@/engine/meters'
+import { hashPin, isValidPinFormat, PIN_MAX_LENGTH, PIN_MIN_LENGTH, pinMatches } from '@/lib/pin'
 import { earnWindow, type EarnWindow } from '@/lib/time/calendar'
 import { denverDateKey } from '@/lib/time/denver'
 import { calendarMonthKey, earnWeekKey } from '@/lib/time/surpriseWeek'
@@ -121,6 +125,24 @@ export class SurpriseError extends Error {
   }
 }
 
+export class PinError extends Error {
+  readonly code: 'wrong-current' | 'bad-format' | 'mismatch'
+  constructor(code: PinError['code'], message: string) {
+    super(message)
+    this.name = 'PinError'
+    this.code = code
+  }
+}
+
+export class SettingsError extends Error {
+  readonly code: 'empty-family-name' | 'empty-verse'
+  constructor(code: SettingsError['code'], message: string) {
+    super(message)
+    this.name = 'SettingsError'
+    this.code = code
+  }
+}
+
 export class AddEarnError extends Error {
   readonly code: 'unknown-user' | 'unknown-act' | 'not-path-b' | 'wrong-band'
   constructor(code: AddEarnError['code'], message: string) {
@@ -143,6 +165,11 @@ type Listener = () => void
 export interface RepositoryOptions {
   /** Build-time FORCE_LIVE (VITE_FORCE_LIVE=true). OR-ed with the settings toggle. */
   envForceLive?: boolean
+  /**
+   * Initial admin PIN (VITE_ADMIN_PIN). Used only when seeding or migrating a
+   * snapshot that has no stored PIN yet; afterwards Settings owns the PIN.
+   */
+  defaultAdminPin?: string
 }
 
 export class Repository {
@@ -150,10 +177,12 @@ export class Repository {
   private readonly adapter: StorageAdapter
   private readonly listeners = new Set<Listener>()
   private readonly envForceLive: boolean
+  private readonly defaultAdminPin: string | undefined
 
   constructor(adapter: StorageAdapter, options: RepositoryOptions = {}) {
     this.adapter = adapter
     this.envForceLive = options.envForceLive ?? false
+    this.defaultAdminPin = options.defaultAdminPin
     this.db = this.loadOrSeed()
   }
 
@@ -202,14 +231,14 @@ export class Repository {
       return existing
     }
     if (existing) {
-      const migrated = migrateDatabase(existing)
+      const migrated = migrateDatabase(existing, new Date(), { adminPin: this.defaultAdminPin })
       if (migrated) {
         this.adapter.save(migrated)
         return migrated
       }
     }
     // Missing or too-old snapshot: reseed.
-    const seeded = buildSeedDatabase()
+    const seeded = buildSeedDatabase(new Date(), { adminPin: this.defaultAdminPin })
     this.adapter.save(seeded)
     return seeded
   }
@@ -800,19 +829,128 @@ export class Repository {
 
   // --- settings ------------------------------------------------------------
 
+  /** ADMIN ONLY. Full settings including the PIN digest and dev switches. */
   getSettings(): Settings {
     return { ...this.db.settings }
   }
 
-  updateSettings(patch: Partial<Omit<Settings, 'schemaVersion'>>): void {
+  /** KID-FACING. Family name, verse, and the sound flag. Nothing else. */
+  getFamilySettings(): FamilySettings {
+    const { familyName, verse, muteKidSounds } = this.db.settings
+    return { familyName, verse, muteKidSounds }
+  }
+
+  updateSettings(patch: Partial<Omit<Settings, 'schemaVersion' | 'adminPinHash'>>): void {
     this.commit({ ...this.db, settings: { ...this.db.settings, ...patch } })
   }
 
-  /** Wipe persisted data and reseed. */
+  /** ADMIN ONLY. Family name, Sky log verse, and the kid-sound mute flag. */
+  adminUpdateFamilySettings(patch: Partial<FamilySettings>): FamilySettings {
+    const next: Partial<FamilySettings> = {}
+    if (patch.familyName !== undefined) {
+      const familyName = patch.familyName.trim()
+      if (!familyName) throw new SettingsError('empty-family-name', 'Family name cannot be blank')
+      next.familyName = familyName
+    }
+    if (patch.verse !== undefined) {
+      const verse = patch.verse.trim()
+      if (!verse) throw new SettingsError('empty-verse', 'The Sky log verse cannot be blank')
+      next.verse = verse
+    }
+    if (patch.muteKidSounds !== undefined) next.muteKidSounds = patch.muteKidSounds
+    this.updateSettings(next)
+    return this.getFamilySettings()
+  }
+
+  // --- admin PIN -----------------------------------------------------------
+
+  /** Does this PIN unlock the shared parent login? Trims whitespace. */
+  verifyAdminPin(pin: string): boolean {
+    return pinMatches(pin, this.db.settings.adminPinHash)
+  }
+
+  /**
+   * ADMIN ONLY. Change the parent PIN. Requires the current PIN, a 4–8 digit
+   * new PIN, and a matching confirmation.
+   */
+  adminChangePin(input: { currentPin: string; newPin: string; confirmPin: string }): void {
+    if (!this.verifyAdminPin(input.currentPin)) {
+      throw new PinError('wrong-current', 'Current PIN is wrong')
+    }
+    const newPin = input.newPin.trim()
+    if (!isValidPinFormat(newPin)) {
+      throw new PinError('bad-format', `New PIN must be ${PIN_MIN_LENGTH}–${PIN_MAX_LENGTH} digits`)
+    }
+    if (newPin !== input.confirmPin.trim()) {
+      throw new PinError('mismatch', 'New PIN and confirmation do not match')
+    }
+    this.commit({ ...this.db, settings: { ...this.db.settings, adminPinHash: hashPin(newPin) } })
+  }
+
+  // --- audit ---------------------------------------------------------------
+
+  /**
+   * ADMIN ONLY. Ledger entries and surprise drops as one searchable list,
+   * newest first. View-only. TODO(audit-void): void/undo is a later ticket.
+   */
+  adminListAuditEvents(filter: AuditFilter = {}): AuditEvent[] {
+    const nameOf = (id: string) => this.getUser(id)?.name ?? id
+    const ledgerRows: AuditEvent[] = this.db.ledger.map((e) => ({
+      id: e.id,
+      kind: 'ledger',
+      at: e.createdAt,
+      userId: e.userId,
+      userName: nameOf(e.userId),
+      title: e.actId ? (this.getAct(e.actId)?.title ?? e.actId) : 'Simulated points',
+      points: e.points,
+      path: e.path,
+      source: LEDGER_SOURCE_LABEL[e.source],
+      note: e.note,
+    }))
+    const surpriseRows: AuditEvent[] = this.db.surpriseDrops.map((d) => ({
+      id: d.id,
+      kind: 'surprise',
+      at: d.createdAt,
+      userId: d.kidId,
+      userName: nameOf(d.kidId),
+      title: d.emoji ? `${d.emoji} ${d.title}` : d.title,
+      points: null,
+      path: 'surprise',
+      source: 'Surprise',
+      status: d.status,
+      note: d.note ?? '',
+    }))
+
+    const path = filter.path ?? 'all'
+    const query = filter.query?.trim().toLowerCase()
+    const rows = [...ledgerRows, ...surpriseRows]
+      .filter((row) => {
+        if (filter.userId && row.userId !== filter.userId) return false
+        if (path !== 'all' && row.path !== path) return false
+        const day = denverDateKey(new Date(row.at))
+        if (filter.from && day < filter.from) return false
+        if (filter.to && day > filter.to) return false
+        if (query) {
+          const haystack = `${row.title} ${row.note} ${row.source} ${row.userName} ${row.status ?? ''}`.toLowerCase()
+          if (!haystack.includes(query)) return false
+        }
+        return true
+      })
+      .sort((a, b) => b.at.localeCompare(a.at))
+    return filter.limit ? rows.slice(0, filter.limit) : rows
+  }
+
+  /** Wipe persisted data and reseed. The PIN goes back to the build default. */
   resetAll(): void {
     this.adapter.clear()
-    this.commit(buildSeedDatabase())
+    this.commit(buildSeedDatabase(new Date(), { adminPin: this.defaultAdminPin }))
   }
+}
+
+const LEDGER_SOURCE_LABEL: Record<LedgerSource, string> = {
+  inbox: 'Inbox',
+  'add-earn': 'Add earn',
+  simulate: 'Simulated',
 }
 
 function toKidSurprise(drop: SurpriseDrop): KidSurprise {
