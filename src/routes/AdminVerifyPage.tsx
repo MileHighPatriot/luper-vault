@@ -80,6 +80,8 @@ export function AdminVerifyPage() {
       userId: ADMIN_USER_ID,
       actId: null,
       points,
+      path: 'B',
+      source: 'simulate',
       note: `Verify screen: simulated ${points > 0 ? '+' : ''}${points} approved points`,
     })
   }

@@ -35,21 +35,39 @@ export interface EarnAct {
   rare?: boolean
 }
 
+/** Where a ledger entry came from. `simulate` is the admin verify screen. */
+export type LedgerSource = 'inbox' | 'simulate'
+
 /** Approved points only. Pending claims never touch this table. */
 export interface LedgerEntry {
   id: string
   userId: string
   actId: string | null
+  /** Final approved points (edited value if the parent changed it). */
   points: number
+  path: EarnPath
+  source: LedgerSource
+  /** Set when the entry came from approving a claim. */
+  claimId?: string
   note: string
   createdAt: string
 }
 
+export type ClaimStatus = 'pending' | 'approved' | 'denied'
+
+/** A kid's Path A "I did it" waiting for a parent. Phase 4 adds the kid button; Phase 2 queues from the admin dev panel. */
 export interface PendingClaim {
   id: string
   userId: string
   actId: string
+  /** Catalog points at the time the claim was made. */
+  requestedPoints: number
+  status: ClaimStatus
   createdAt: string
+  resolvedAt?: string
+  parentNote?: string
+  /** Parent-adjusted points; used instead of `requestedPoints` on approve. */
+  editedPoints?: number
 }
 
 export interface VaultMeter {

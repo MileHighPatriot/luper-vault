@@ -67,7 +67,14 @@ describe('repository seeding', () => {
     expect(repo.listPendingClaims()).toEqual([])
     expect(repo.adminListLedger()).toEqual([])
 
-    repo.recordApprovedPoints({ userId: 'admin', actId: null, points: 10, note: 'simulate' })
+    repo.recordApprovedPoints({
+      userId: 'admin',
+      actId: null,
+      points: 10,
+      path: 'B',
+      source: 'simulate',
+      note: 'simulate',
+    })
     const meters = Object.fromEntries(repo.getMeters().map((m) => [m.tier, m.valueTenths]))
     expect(meters).toEqual({ T1: 50, T2: 30, T3: 20 })
     expect(repo.adminListLedger()).toHaveLength(1)

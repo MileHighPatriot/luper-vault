@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { Coins, Gauge, Gift, Home, Inbox, Trophy, type LucideIcon } from 'lucide-react'
+import { Coins, Gauge, Gift, Home, Inbox, ScrollText, Trophy, Wrench, type LucideIcon } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
+import { useRepositoryValue } from '@/data/RepositoryContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,7 +20,6 @@ const KID_NAV: StubItem[] = [
 ]
 
 const ADMIN_NAV: StubItem[] = [
-  { label: 'Inbox', icon: Inbox, phase: 2 },
   { label: 'Add earn', icon: Coins, phase: 3 },
   { label: 'Rewards builder', icon: Gift, phase: 5 },
 ]
@@ -46,6 +46,7 @@ function StubNav({ items }: { items: StubItem[] }) {
 
 export function HomeStub() {
   const { user, isAdmin } = useAuth()
+  const pendingCount = useRepositoryValue((r) => r.listPendingClaims().length)
   if (!user) return null
 
   if (isAdmin) {
@@ -54,23 +55,68 @@ export function HomeStub() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Parent console</h1>
           <p className="text-sm text-muted-foreground">
-            Phase 1 ships the data layer and meter engine. Use Verify to watch the engine work.
+            Process Path A claims in the Inbox. Approvals write the family ledger and move the meters.
           </p>
         </div>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gauge className="size-5 text-primary" aria-hidden />
-              Verify screen
-            </CardTitle>
-            <CardDescription>Family vault meters, simulated approved points, and seed catalog counts.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild>
-              <Link to="/admin/verify">Open Verify</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Inbox className="size-5 text-primary" aria-hidden />
+                Inbox
+                {pendingCount > 0 && <Badge>{pendingCount} waiting</Badge>}
+              </CardTitle>
+              <CardDescription>Approve, deny, or edit pending claims.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild>
+                <Link to="/admin/inbox">Open Inbox</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ScrollText className="size-5 text-primary" aria-hidden />
+                Ledger
+              </CardTitle>
+              <CardDescription>Recent approved events.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild variant="outline">
+                <Link to="/admin/ledger">Open Ledger</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Gauge className="size-5 text-primary" aria-hidden />
+                Verify
+              </CardTitle>
+              <CardDescription>Meter engine and seed catalog checks.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild variant="outline">
+                <Link to="/admin/verify">Open Verify</Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wrench className="size-5 text-primary" aria-hidden />
+                Dev tools
+              </CardTitle>
+              <CardDescription>Queue Path A claims until the kid Earn button ships.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild variant="outline">
+                <Link to="/admin/dev">Open Dev tools</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
         <section className="space-y-2">
           <h2 className="text-sm font-medium text-muted-foreground">Coming in later phases</h2>
           <StubNav items={ADMIN_NAV} />

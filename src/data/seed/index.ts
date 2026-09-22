@@ -3,7 +3,8 @@ import { initialMeters } from '@/engine/meters'
 import { SEED_ACTS } from './acts'
 import { SEED_USERS } from './users'
 
-export const SCHEMA_VERSION = 1
+/** Bumped in Phase 2 (claim status / ledger source fields). A mismatch reseeds the store. */
+export const SCHEMA_VERSION = 2
 
 /** Placeholder until the settings screen lands in a later phase. */
 export const PLACEHOLDER_VERSE =
