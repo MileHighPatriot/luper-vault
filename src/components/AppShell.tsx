@@ -11,8 +11,8 @@ export const APP_NAME = 'The Luper Ledger'
 
 export function PhaseBadge() {
   return (
-    <Badge variant="accent" title="All six Monday-ready phases are in. Later polish tickets are tracked separately.">
-      Phase 6 of 6
+    <Badge variant="accent" title="Phase 7 of polish: surprise drops. The Monday-ready core is phases 1–6.">
+      Phase 7
     </Badge>
   )
 }
@@ -81,8 +81,8 @@ export function AppShell() {
 
       <footer className="border-t">
         <div className="mx-auto w-full max-w-4xl px-4 py-3 text-xs text-muted-foreground">
-          Phase 6 of 6. Earn Mon–Sat until 8:00 PM Denver; Sunday is reward day. Go-live Mon Sep 28, 2026; month and
-          quarter tiers open Oct 1.
+          Phase 7 of polish — surprise drops. Earn Mon–Sat until 8:00 PM Denver; Sunday is reward day. Go-live Mon Sep
+          28, 2026; month and quarter tiers open Oct 1.
         </div>
       </footer>
     </div>

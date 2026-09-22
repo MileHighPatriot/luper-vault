@@ -129,6 +129,34 @@ export interface KidReward {
   announced: boolean
 }
 
+export type SurpriseStatus = 'pending' | 'seen' | 'canceled'
+
+/**
+ * A mid-cycle treat a parent pushes to one kid. Not a vault reward: it never
+ * moves T1/T2/T3 and it is not Path A or B. `pending` until that kid dismisses
+ * the Home flare, then `seen`. Parents can cancel only while it is still unseen.
+ */
+export interface SurpriseDrop {
+  id: string
+  kidId: string
+  title: string
+  note?: string
+  emoji?: string
+  createdAt: string
+  createdBy: string
+  status: SurpriseStatus
+  seenAt?: string
+}
+
+/** Kid-facing surprise. No kid id, no sender, no meter data. */
+export interface KidSurprise {
+  id: string
+  title: string
+  note?: string
+  emoji?: string
+  createdAt: string
+}
+
 export type WinKind = 'unlock' | 'announce'
 
 /** Something the family unlocked or a parent announced. Family-wide; no names, no scores. */
@@ -165,5 +193,6 @@ export interface Database {
   vaultMeters: VaultMeter[]
   rewards: Reward[]
   wins: Win[]
+  surpriseDrops: SurpriseDrop[]
   settings: Settings
 }

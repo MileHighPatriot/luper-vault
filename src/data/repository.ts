@@ -6,11 +6,13 @@ import type {
   KidEarnAct,
   KidPendingClaim,
   KidReward,
+  KidSurprise,
   LedgerEntry,
   LedgerSource,
   PendingClaim,
   Reward,
   Settings,
+  SurpriseDrop,
   Tier,
   User,
   VaultMeter,
@@ -19,6 +21,7 @@ import type {
 import { applyLedgerEntry, isMeterFull } from '@/engine/meters'
 import { earnWindow, type EarnWindow } from '@/lib/time/calendar'
 import { denverDateKey } from '@/lib/time/denver'
+import { calendarMonthKey, earnWeekKey } from '@/lib/time/surpriseWeek'
 import { buildSeedDatabase, migrateDatabase, SCHEMA_VERSION, TIER_PERIOD } from './seed'
 
 /**
@@ -83,6 +86,37 @@ export class RewardError extends Error {
   constructor(code: RewardError['code'], message: string) {
     super(message)
     this.name = 'RewardError'
+    this.code = code
+  }
+}
+
+/** Soft caps for surprise drops. Canceled drops do not count. */
+export const SURPRISE_WEEK_CAP = 1
+export const SURPRISE_MONTH_CAP = 3
+
+export interface SendSurpriseInput {
+  kidId: string
+  title: string
+  note?: string
+  emoji?: string
+  createdBy: string
+}
+
+export interface SurpriseAllowance {
+  weekUsed: number
+  weekCap: number
+  monthUsed: number
+  monthCap: number
+  canSend: boolean
+  /** Set when a cap blocks another drop for this kid right now. */
+  message: string | null
+}
+
+export class SurpriseError extends Error {
+  readonly code: 'not-a-kid' | 'empty-title' | 'week-cap' | 'month-cap' | 'not-found' | 'not-pending'
+  constructor(code: SurpriseError['code'], message: string) {
+    super(message)
+    this.name = 'SurpriseError'
     this.code = code
   }
 }
@@ -594,6 +628,145 @@ export class Repository {
     return reward
   }
 
+  // --- surprise drops (outside the vault) ----------------------------------
+
+  /**
+   * ADMIN ONLY. How many non-canceled surprises this kid already has in the
+   * current earn week and Denver calendar month. Does not touch meters.
+   */
+  adminSurpriseAllowance(kidId: string, now: Date = this.now()): SurpriseAllowance {
+    const kid = this.requireKid(kidId)
+    const counts = this.surpriseCounts(kid.id, now)
+    const weekBlocked = counts.week >= SURPRISE_WEEK_CAP
+    const monthBlocked = counts.month >= SURPRISE_MONTH_CAP
+    return {
+      weekUsed: counts.week,
+      weekCap: SURPRISE_WEEK_CAP,
+      monthUsed: counts.month,
+      monthCap: SURPRISE_MONTH_CAP,
+      canSend: !weekBlocked && !monthBlocked,
+      message: weekBlocked
+        ? weekCapMessage(kid.name)
+        : monthBlocked
+          ? monthCapMessage(kid.name)
+          : null,
+    }
+  }
+
+  /**
+   * ADMIN ONLY. Push an extra treat to one kid. Allowed any day, including
+   * Sunday and before go-live. Never writes the ledger or moves meters.
+   */
+  adminSendSurprise(input: SendSurpriseInput): SurpriseDrop {
+    const kid = this.requireKid(input.kidId)
+    const title = input.title.trim()
+    if (!title) throw new SurpriseError('empty-title', 'A surprise needs a title')
+    const allowance = this.adminSurpriseAllowance(kid.id)
+    if (!allowance.canSend) {
+      const weekBlocked = allowance.weekUsed >= SURPRISE_WEEK_CAP
+      throw new SurpriseError(weekBlocked ? 'week-cap' : 'month-cap', allowance.message ?? 'Surprise cap reached')
+    }
+    const note = input.note?.trim()
+    const emoji = input.emoji?.trim()
+    const drop: SurpriseDrop = {
+      id: newId(),
+      kidId: kid.id,
+      title,
+      ...(note ? { note } : {}),
+      ...(emoji ? { emoji } : {}),
+      createdAt: this.now().toISOString(),
+      createdBy: input.createdBy,
+      status: 'pending',
+    }
+    this.commit({ ...this.db, surpriseDrops: [...this.db.surpriseDrops, drop] })
+    return drop
+  }
+
+  /** ADMIN ONLY. Every surprise, newest first. */
+  adminListSurprises(): SurpriseDrop[] {
+    return [...this.db.surpriseDrops].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }
+
+  /**
+   * ADMIN ONLY. Take back a surprise the kid has not opened yet.
+   * A seen treat stays on their Wins patch and cannot be canceled.
+   */
+  adminCancelSurprise(id: string): SurpriseDrop {
+    const drop = this.db.surpriseDrops.find((d) => d.id === id)
+    if (!drop) throw new SurpriseError('not-found', 'That surprise is not on the list')
+    if (drop.status !== 'pending') {
+      const kid = this.getUser(drop.kidId)
+      const name = kid?.name ?? 'This kid'
+      throw new SurpriseError(
+        'not-pending',
+        drop.status === 'seen'
+          ? `${name} already saw this surprise, so it stays on their Wins.`
+          : 'That surprise is already canceled.',
+      )
+    }
+    const next: SurpriseDrop = { ...drop, status: 'canceled' }
+    this.commit({
+      ...this.db,
+      surpriseDrops: this.db.surpriseDrops.map((d) => (d.id === id ? next : d)),
+    })
+    return next
+  }
+
+  /** KID-FACING. Unopened surprises for this kid only, newest first. */
+  listPendingSurprisesForKid(kidId: string): KidSurprise[] {
+    return this.db.surpriseDrops
+      .filter((d) => d.kidId === kidId && d.status === 'pending')
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map(toKidSurprise)
+  }
+
+  /** KID-FACING. Seen surprises for this kid's Wins patches, newest first. */
+  listSeenSurprisesForKid(kidId: string): KidSurprise[] {
+    return this.db.surpriseDrops
+      .filter((d) => d.kidId === kidId && d.status === 'seen')
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map(toKidSurprise)
+  }
+
+  /**
+   * KID-FACING. Dismiss the Home flare. Only this kid's pending drops change;
+   * other ids are ignored. Does not move meters.
+   */
+  markSurprisesSeen(kidId: string, ids: string[]): void {
+    if (ids.length === 0) return
+    const wanted = new Set(ids)
+    const seenAt = this.now().toISOString()
+    let changed = false
+    const surpriseDrops = this.db.surpriseDrops.map((d) => {
+      if (d.kidId !== kidId || d.status !== 'pending' || !wanted.has(d.id)) return d
+      changed = true
+      return { ...d, status: 'seen' as const, seenAt }
+    })
+    if (changed) this.commit({ ...this.db, surpriseDrops })
+  }
+
+  private requireKid(kidId: string): User {
+    const user = this.getUser(kidId)
+    if (!user || user.role === 'admin' || !user.band) {
+      throw new SurpriseError('not-a-kid', 'Pick a kid to send the surprise to')
+    }
+    return user
+  }
+
+  private surpriseCounts(kidId: string, now: Date): { week: number; month: number } {
+    const week = earnWeekKey(now)
+    const month = calendarMonthKey(now)
+    let weekCount = 0
+    let monthCount = 0
+    for (const drop of this.db.surpriseDrops) {
+      if (drop.kidId !== kidId || drop.status === 'canceled') continue
+      const at = new Date(drop.createdAt)
+      if (earnWeekKey(at) === week) weekCount += 1
+      if (calendarMonthKey(at) === month) monthCount += 1
+    }
+    return { week: weekCount, month: monthCount }
+  }
+
   /**
    * ADMIN ONLY / DEV. Queue a handful of Path A claims across the kids so the
    * inbox has something to process without logging in as each kid.
@@ -640,6 +813,24 @@ export class Repository {
     this.adapter.clear()
     this.commit(buildSeedDatabase())
   }
+}
+
+function toKidSurprise(drop: SurpriseDrop): KidSurprise {
+  return {
+    id: drop.id,
+    title: drop.title,
+    ...(drop.note ? { note: drop.note } : {}),
+    ...(drop.emoji ? { emoji: drop.emoji } : {}),
+    createdAt: drop.createdAt,
+  }
+}
+
+function weekCapMessage(name: string): string {
+  return `${name} already has a surprise this earn week (Monday–Saturday; Sunday counts on that same week). One per kid per week.`
+}
+
+function monthCapMessage(name: string): string {
+  return `${name} already has ${SURPRISE_MONTH_CAP} surprises this calendar month. Three per kid per month.`
 }
 
 function newId(): string {

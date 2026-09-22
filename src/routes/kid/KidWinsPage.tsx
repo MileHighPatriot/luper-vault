@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
-import { Crown, LockOpen, Megaphone, Trophy } from 'lucide-react'
+import { Crown, LockOpen, Megaphone, Sparkles, Trophy } from 'lucide-react'
+import { useAuth } from '@/auth/AuthContext'
 import { useRepositoryValue } from '@/data/RepositoryContext'
 import { TIER_PERIOD } from '@/data/seed'
 import type { WinKind } from '@/data/types'
@@ -12,9 +13,11 @@ const KIND_LABEL: Record<WinKind, string> = {
   announce: 'Announced',
 }
 
-/** KID-FACING. Family unlocks and announcements. No names, no scores. */
+/** KID-FACING. Family unlocks and announcements, plus this kid's seen surprise patches. */
 export function KidWinsPage() {
+  const { user } = useAuth()
   const wins = useRepositoryValue((r) => r.listWins())
+  const surprises = useRepositoryValue((r) => (user ? r.listSeenSurprisesForKid(user.id) : []))
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,7 +26,34 @@ export function KidWinsPage() {
         <p className="text-sm text-muted-foreground">Everything the family has unlocked together.</p>
       </div>
 
-      {wins.length === 0 ? (
+      {surprises.length > 0 && (
+        <section aria-labelledby="surprise-patches-heading" className="space-y-3">
+          <h2 id="surprise-patches-heading" className="text-lg font-semibold">
+            Surprise patches
+          </h2>
+          <Card>
+            <ol className="divide-y">
+              {surprises.map((surprise) => (
+                <li key={surprise.id} className="flex items-start gap-3 px-4 py-3" data-testid="surprise-patch">
+                  <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-lg">
+                    {surprise.emoji ?? <Sparkles className="size-4 text-accent-foreground" aria-hidden />}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">{surprise.title}</span>
+                      <Badge variant="accent">Surprise</Badge>
+                    </div>
+                    {surprise.note ? <p className="text-sm text-muted-foreground">{surprise.note}</p> : null}
+                    <p className="text-xs text-muted-foreground">{formatDenver(new Date(surprise.createdAt))}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        </section>
+      )}
+
+      {wins.length === 0 && surprises.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <span className="flex size-12 items-center justify-center rounded-full bg-secondary text-primary">

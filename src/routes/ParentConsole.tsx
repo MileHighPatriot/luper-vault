@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { CirclePlus, Clock, Gauge, Gift, Inbox, ScrollText, Wrench, type LucideIcon } from 'lucide-react'
+import { CirclePlus, Clock, Gauge, Gift, Inbox, ScrollText, Sparkles, Wrench, type LucideIcon } from 'lucide-react'
 import { useRepositoryValue } from '@/data/RepositoryContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ const CARDS: ConsoleCard[] = [
   { to: '/admin/inbox', label: 'Inbox', description: 'Approve, deny, or edit pending claims.', icon: Inbox, primary: true },
   { to: '/admin/add-earn', label: 'Add earn', description: 'Stamp Path B earns and demerits directly.', icon: CirclePlus, primary: true },
   { to: '/admin/rewards', label: 'Rewards', description: 'Set the week, month, and quarter rewards. Announce unlocks.', icon: Gift },
+  { to: '/admin/surprise', label: 'Surprise', description: 'Send an extra treat to one kid. Does not move the vault.', icon: Sparkles, primary: true },
   { to: '/admin/ledger', label: 'Ledger', description: 'Recent approved events.', icon: ScrollText },
   { to: '/admin/clock', label: 'Clock', description: 'Denver time, go-live and earn-window status, FORCE_LIVE.', icon: Clock },
   { to: '/admin/verify', label: 'Verify', description: 'Meter engine and seed catalog checks.', icon: Gauge },
@@ -56,7 +57,7 @@ export function ParentConsole() {
         ))}
       </div>
       <p className="text-xs text-muted-foreground">
-        All six Monday-ready phases are in. Go-live Mon Sep 28, 2026; month and quarter tiers open Oct 1.
+        Monday-ready core is in. Phase 7 adds surprise drops: one per kid per earn week, three per month. They never move the meters.
       </p>
     </div>
   )

@@ -2,6 +2,8 @@
 
 A family shared-reward app. Kids and parents earn approved points that pour into three **family** vault meters; nobody has a personal score to compete over. (Constellation Crew skin comes later.)
 
+> **Phase 7 of polish — Surprise drops.** Parents can push a mid-cycle treat to one kid (candy, a coffee, a few dollars). It is not on the Week / Month / Quarter board, it is not Path A or B, and it does not move the vault meters. Soft caps: **1 per kid per earn week** (Monday–Saturday; Sunday counts on that same week) and **3 per kid per calendar month**. The kid sees a Home flare once, then a surprise patch on Wins.
+>
 > **Phase 6 of 6 — Calendar gate. The Monday-ready core is complete.**
 >
 > Phases 1–5 shipped the skeleton, seed data, auth, meter math, the parent Inbox, parent Add earn, kid Home + Earn, Rewards, and Wins. Phase 6 adds the **household calendar**: go-live on **Monday 2026-09-28**, an earn window of **Monday–Saturday until 8:00 PM America/Denver**, **Sunday as reward day** (no Path A claims), and the **month / quarter tiers opening Oct 1, 2026**. Kids' "I did it" is blocked outside the window with a clear message, Home and Rewards switch to celebrate copy on Sundays, countdown chips run on the real Denver calendar, and admins get a Clock panel with FORCE_LIVE and a dev clock preview. Later polish (constellation skin, sounds, crowns, real auth) is tracked separately.
@@ -15,7 +17,20 @@ A family shared-reward app. Kids and parents earn approved points that pour into
 | 3 | Parent Add earn (Path B earns, conduct + parent demerits, direct ledger write) | done |
 | 4 | Kid Home + Earn (family meters, verse card, "I did it" claims, Path B read-only) | done |
 | 5 | Rewards builder, kid Rewards (locked / unlocked per tier), Wins reel, one-time announce banner | done |
-| 6 | Calendar gate: go-live, Mon–Sat 8 PM Denver cutoff, Sunday reward day, Oct 1 tier opening, Clock panel | **this repo** |
+| 6 | Calendar gate: go-live, Mon–Sat 8 PM Denver cutoff, Sunday reward day, Oct 1 tier opening, Clock panel | done |
+| 7 | Surprise drops: parent send, week/month caps, one-time Home flare, Wins patch | **this repo** |
+
+## Surprise drops (Phase 7 of polish)
+
+Admin → **Surprise** sends a treat to one kid: title, optional note, optional emoji. The kid's next Home open shows a flare ("Extra treat for crushing it"). Dismiss marks it seen and adds a surprise patch on that kid's Wins. It never appears on the Rewards board.
+
+| Rule | Value |
+|------|-------|
+| Meters / Path A / Path B | Untouched. No ledger row. |
+| Week cap | 1 non-canceled surprise per kid per earn week. The week is Monday 00:00 Denver through the following Sunday. |
+| Month cap | 3 non-canceled surprises per kid per Denver calendar month. |
+| When | Any day, including Sunday, before go-live, and after the 8 PM cutoff. |
+| Cancel | Only while status is still `pending`. A seen surprise stays. |
 
 ## Calendar rules (locked)
 
@@ -138,7 +153,7 @@ Swapping to SQLite later means writing one more `StorageAdapter`; UI and engine 
 
 ### Kid safety rule
 
-The repository exposes **no per-user or per-sibling totals**. The only aggregate is `getMeters()` (family-wide). Kid-facing projections (`KidEarnAct`, `KidPendingClaim`, `KidReward`, `Win`) strip point values and per-kid fields; tests assert their JSON never contains `points`, `cost`, `seenBy`, or `userId`. Ledger reads and claim resolution are prefixed `admin*` or documented ADMIN ONLY, and are only reached from admin routes behind `RequireAdmin`. Please keep it that way in later phases.
+The repository exposes **no per-user or per-sibling totals**. The only aggregate is `getMeters()` (family-wide). Kid-facing projections (`KidEarnAct`, `KidPendingClaim`, `KidReward`, `KidSurprise`, `Win`) strip point values and per-kid fields; tests assert their JSON never contains `points`, `cost`, `seenBy`, or `userId`. Surprise reads for kids are scoped to that kid (`listPendingSurprisesForKid`, `listSeenSurprisesForKid`). Ledger reads and claim resolution are prefixed `admin*` or documented ADMIN ONLY, and are only reached from admin routes behind `RequireAdmin`. Please keep it that way in later phases.
 
 ## Meter engine
 
@@ -173,9 +188,9 @@ Key exports: `splitPoints(points)`, `applyLedgerEntry(meters, points)`, `initial
 ```
 src/
   auth/          session + AuthProvider (login/logout, PIN check)
-  components/    AppShell (title + phase badge), AdminLayout + KidLayout tabs, MeterStrip, AnnouncementBanner, route guards, ui/ primitives
-  data/          types, repository (claims, ledger, rewards, calendar gate), adapters, seed/, useHouseholdClock, tests
+  components/    AppShell (title + phase badge), AdminLayout + KidLayout tabs, MeterStrip, AnnouncementBanner, SurpriseFlare, route guards, ui/ primitives
+  data/          types, repository (claims, ledger, rewards, calendar gate, surprise drops), adapters, seed/, useHouseholdClock, tests
   engine/        meter math + tests
-  lib/time/      America/Denver helpers, household calendar rules + countdowns, tests
-  routes/        LoginPage, ParentConsole, InboxPage, AddEarnPage, RewardsBuilderPage, LedgerPage, ClockPage, DevToolsPage, AdminVerifyPage, kid/ (Home, Earn, Rewards, Wins)
+  lib/time/      America/Denver helpers, household calendar rules + countdowns, surprise earn-week keys, tests
+  routes/        LoginPage, ParentConsole, InboxPage, AddEarnPage, RewardsBuilderPage, SurprisePage, LedgerPage, ClockPage, DevToolsPage, AdminVerifyPage, kid/ (Home, Earn, Rewards, Wins)
 ```

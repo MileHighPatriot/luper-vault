@@ -8,6 +8,7 @@ import { meterPercent, meterPoints } from '@/engine/meters'
 import { CUTOFF_LABEL, countdowns, formatRemaining } from '@/lib/time/calendar'
 import { formatDenver } from '@/lib/time/denver'
 import { AnnouncementBanner } from '@/components/AnnouncementBanner'
+import { SurpriseFlare } from '@/components/SurpriseFlare'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -90,6 +91,7 @@ export function KidHomePage() {
         )}
       </div>
 
+      {user && <SurpriseFlare userId={user.id} />}
       {user && <AnnouncementBanner userId={user.id} />}
 
       {sunday && (

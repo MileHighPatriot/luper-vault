@@ -6,9 +6,10 @@ import { SEED_USERS } from './users'
 
 /**
  * v1 Phase 1 foundation · v2 Phase 2 claim status + ledger source ·
- * v3 Phase 5 rewards + wins tables · v4 Phase 6 forceLive + clockOverride settings.
+ * v3 Phase 5 rewards + wins tables · v4 Phase 6 forceLive + clockOverride settings ·
+ * v5 Phase 7 surprise drops.
  */
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 /** Placeholder until the settings screen lands in a later phase. */
 export const PLACEHOLDER_VERSE =
@@ -23,6 +24,7 @@ export function buildSeedDatabase(now: Date = new Date()): Database {
     vaultMeters: initialMeters(),
     rewards: buildSeedRewards(now),
     wins: [],
+    surpriseDrops: [],
     settings: {
       schemaVersion: SCHEMA_VERSION,
       verse: PLACEHOLDER_VERSE,
@@ -48,6 +50,10 @@ export function migrateDatabase(db: Database, now: Date = new Date()): Database 
   if (version === 3) {
     next = { ...next, settings: { ...next.settings, forceLive: false, clockOverride: null } }
     version = 4
+  }
+  if (version === 4) {
+    next = { ...next, surpriseDrops: next.surpriseDrops ?? [] }
+    version = 5
   }
   if (version !== SCHEMA_VERSION) return null
   return { ...next, settings: { ...next.settings, schemaVersion: SCHEMA_VERSION } }
