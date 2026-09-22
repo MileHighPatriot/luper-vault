@@ -108,6 +108,12 @@ Open **Verify** (`/admin/verify`). It shows:
 - **Simulate +10 approved points** (expect T1 +5, T2 +3, T3 +2), **Simulate −5 demerit**, **Reset meters**
 - Seeded act counts by band against the locked expectations (little 18, teen 23, conduct 8, parent 13)
 
+## Live URL (GitHub Pages)
+
+`.github/workflows/deploy-pages.yml` builds and deploys `main` to GitHub Pages on every push. The site is served at `https://<owner>.github.io/<repo>/`; the workflow sets `VITE_BASE_PATH=/<repo>/` so assets and the router (`BrowserRouter basename`) resolve under that prefix, and copies `index.html` to `404.html` so deep links like `/home` work on Pages.
+
+One-time setup after the repository exists: **Settings → Pages → Source: GitHub Actions** (the workflow also attempts to enable this itself). Then the deploy URL appears on the workflow run and under Settings → Pages. Data stays in each browser's `localStorage`; the Pages site holds no family data.
+
 ## Stack
 
 - Vite + React 19 + TypeScript
