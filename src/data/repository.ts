@@ -3,6 +3,8 @@ import type {
   Database,
   EarnAct,
   EarnPath,
+  KidEarnAct,
+  KidPendingClaim,
   LedgerEntry,
   LedgerSource,
   PendingClaim,
@@ -48,7 +50,14 @@ export interface ApproveClaimInput {
 }
 
 export class ClaimError extends Error {
-  readonly code: 'not-found' | 'not-pending' | 'not-path-a' | 'not-a-kid' | 'bad-points' | 'unknown-act'
+  readonly code:
+    | 'not-found'
+    | 'not-pending'
+    | 'not-path-a'
+    | 'not-a-kid'
+    | 'bad-points'
+    | 'unknown-act'
+    | 'already-pending'
   constructor(code: ClaimError['code'], message: string) {
     super(message)
     this.name = 'ClaimError'
@@ -150,6 +159,32 @@ export class Repository {
     return this.db.earnActs.filter((act) => act.path === 'B' && this.actAppliesTo(act, user))
   }
 
+  /**
+   * KID-FACING. The acts a kid sees on their Earn screen: their band's Path A
+   * and Path B acts plus positive conduct stamps for their audience, projected
+   * to names only. Demerits (negative points) are never included.
+   */
+  listEarnActsForKid(userId: string): KidEarnAct[] {
+    const user = this.getUser(userId)
+    if (!user || user.role === 'admin' || !user.band) return []
+    return this.db.earnActs
+      .filter((act) => act.points > 0 && this.actAppliesTo(act, user))
+      .map(({ id, title, path, band, rare }) => ({ id, title, path, band, ...(rare ? { rare } : {}) }))
+  }
+
+  /** KID-FACING. The kid's own pending claims, without points. */
+  listKidPendingClaims(userId: string): KidPendingClaim[] {
+    return this.db.pendingClaims
+      .filter((c) => c.userId === userId && c.status === 'pending')
+      .map(({ id, actId, createdAt }) => ({ id, actId, createdAt }))
+  }
+
+  /** When the family vault last moved, or null. Family-wide; safe for kids. */
+  getVaultLastMovedAt(): string | null {
+    const last = this.db.ledger[this.db.ledger.length - 1]
+    return last?.createdAt ?? null
+  }
+
   private actAppliesTo(act: EarnAct, user: User): boolean {
     if (user.role === 'admin') return act.band === 'parent'
     if (!user.band) return false
@@ -213,6 +248,9 @@ export class Repository {
     if (!act) throw new ClaimError('unknown-act', `Unknown act ${input.actId}`)
     if (act.path !== 'A') {
       throw new ClaimError('not-path-a', `${act.title} is Path B (parent-stamped) and cannot be claimed`)
+    }
+    if (this.db.pendingClaims.some((c) => c.userId === user.id && c.actId === act.id && c.status === 'pending')) {
+      throw new ClaimError('already-pending', `${act.title} is already waiting for a parent`)
     }
     const claim: PendingClaim = {
       id: newId(),
@@ -350,18 +388,22 @@ export class Repository {
 
   /**
    * ADMIN ONLY / DEV. Queue a handful of Path A claims across the kids so the
-   * inbox has something to process before the kid Earn button exists (Phase 4).
+   * inbox has something to process without logging in as each kid.
    */
   adminSeedDemoClaims(): PendingClaim[] {
     const kids = this.db.users.filter((u) => u.band)
     const created: PendingClaim[] = []
     const base = Date.now()
     kids.forEach((kid, kidIndex) => {
-      const pathA = this.db.earnActs.filter((a) => a.band === kid.band && a.path === 'A')
+      const alreadyPending = new Set(this.listKidPendingClaims(kid.id).map((c) => c.actId))
+      const pathA = this.db.earnActs.filter(
+        (a) => a.band === kid.band && a.path === 'A' && !alreadyPending.has(a.id),
+      )
       // Two acts per kid, offset through the catalog so siblings get different ones.
       for (let i = 0; i < 2; i += 1) {
         const act = pathA[(kidIndex * 3 + i * 5) % pathA.length]
-        if (!act) continue
+        if (!act || alreadyPending.has(act.id)) continue
+        alreadyPending.add(act.id)
         created.push(
           this.queueClaim({
             userId: kid.id,

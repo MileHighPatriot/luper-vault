@@ -9,7 +9,15 @@ export function RequireAuth() {
   return <Outlet />
 }
 
-/** Admin-only routes. Kids are bounced to their home stub, never to an error page. */
+/** Kid-only routes. The admin is sent to the parent console. */
+export function RequireKid() {
+  const { user, isAdmin } = useAuth()
+  if (!user) return <Navigate to="/login" replace />
+  if (isAdmin) return <Navigate to="/admin" replace />
+  return <Outlet />
+}
+
+/** Admin-only routes. Kids are bounced to their home, never to an error page. */
 export function RequireAdmin() {
   const { user, isAdmin } = useAuth()
   if (!user) return <Navigate to="/login" replace />

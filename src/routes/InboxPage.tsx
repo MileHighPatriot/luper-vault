@@ -187,7 +187,7 @@ export function InboxPage() {
             <div>
               <p className="font-semibold">All clear</p>
               <p className="text-sm text-muted-foreground">
-                No claims waiting. Until the kid Earn button ships (Phase 4), queue some from{' '}
+                No claims waiting. Kids send them from their Earn screen, or queue test ones from{' '}
                 <Link to="/admin/dev" className="underline underline-offset-4">
                   Dev tools
                 </Link>

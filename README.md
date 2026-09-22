@@ -2,9 +2,9 @@
 
 A family shared-reward app. Kids and parents earn approved points that pour into three **family** vault meters; nobody has a personal score to compete over. (Constellation Crew skin comes later.)
 
-> **Phase 3 of 6 — Parent Add earn (Path B + demerits). Do not expect the full app.**
+> **Phase 4 of 6 — Kid Home + Earn. Do not expect the full app.**
 >
-> Phase 1 shipped the runnable skeleton, seed data, auth, and meter math. Phase 2 added the parent Inbox for Path A claims. Phase 3 adds **Add earn**: a parent can stamp Path B earns and demerits (for a kid or for themselves) straight into the family ledger, no claim involved. There is still no kid Earn button (Path A claims are queued from an admin Dev tools page), no rewards, no calendar gate. Kids still see a stub home with "Phase 4" / "Phase 5" placeholders; that is intentional.
+> Phases 1–3 shipped the skeleton, seed data, auth, meter math, the parent Inbox, and parent Add earn. Phase 4 gives each kid a real **Home** (family vault meters, placeholder countdowns, Sky log verse) and **Earn** screen (their band's acts by name only; "I did it" on Path A sends a claim to the parent Inbox; Path B is visible but read-only). Rewards and Wins are still stubs, and there is no calendar gate. Kids never see point values or totals.
 
 ## Phase map
 
@@ -12,8 +12,8 @@ A family shared-reward app. Kids and parents earn approved points that pour into
 |---|-------|--------|
 | 1 | Foundation: shell, auth, data model, seed catalog, meter engine, admin verify screen | done |
 | 2 | Parent inbox + ledger writes (approve / deny / edit, ledger list, dev claim queue) | done |
-| 3 | Parent Add earn (Path B earns, conduct + parent demerits, direct ledger write) | **this repo** |
-| 4 | Kid Home + Earn | not started |
+| 3 | Parent Add earn (Path B earns, conduct + parent demerits, direct ledger write) | done |
+| 4 | Kid Home + Earn (family meters, countdown placeholders, verse card, "I did it" claims, Path B read-only) | **this repo** |
 | 5 | Kid Rewards + basic Wins | not started |
 | 6 | Calendar gate (Mon–Sat ~8pm Denver, Sunday celebrate) | not started |
 
@@ -42,6 +42,17 @@ Pick a name on the login screen. Session is remembered in `localStorage`.
 
 Admin PIN defaults to `1234`. Override by copying `.env.example` to `.env.local` and setting `VITE_ADMIN_PIN`. This is a **Phase 1 placeholder** (`TODO(prod-auth)` in `src/auth/session.ts`), not real security.
 
+### Kid screens (little / teen roles)
+
+Logging in as Kameron, Alea, or Christopher lands on `/home` with tabs Home · Earn · Rewards (Phase 5 stub) · Wins (Phase 5 stub).
+
+- **Home** (`/home`) — the three family vault meters as progress bars with fill and percent (family-wide only), placeholder countdowns for week / month / quarter (Denver calendar day math; the real Mon–Sat ~8pm cutoff is Phase 6), a "Vault moved" chip if the ledger changed in the last 24 hours, and the **Sky log** verse card read from `settings.verse`.
+- **Earn** (`/earn`) — the kid's band catalog **by name only**, no point values. Little kids see the little list; Christopher sees the teen list. Positive conduct stamps (Caught being good, Outstanding day) appear as read-only Path B rows. Demerits never appear.
+  - Path A rows have an **"I did it"** button that creates a pending claim (the same `PendingClaim` the parent Inbox consumes). The row then shows **"Waiting for Ground Control"** until a parent approves or denies it. A kid cannot queue the same act twice while one is pending.
+  - Path B rows show **"Parent adds this"** with no button.
+
+Kid-facing data comes only from `listEarnActsForKid`, `listKidPendingClaims`, `getMeters`, `getVaultLastMovedAt`, and `getSettings`, none of which carry point values or per-person totals. Kids hitting any `/admin/*` URL are redirected home.
+
 ### Parent screens (admin role)
 
 After logging in as Admin, the parent console links to five tabs under `/admin`:
@@ -50,7 +61,7 @@ After logging in as Admin, the parent console links to five tabs under `/admin`:
 - **Add earn** (`/admin/add-earn`) — pick an earner (Kameron, Alea, Christopher, or Parent = the admin logging their own act), then a **Path B only** act. Kids see their band's Path B stamps (Honest, School growth, Bible verse, ...) plus the conduct acts for their audience (Caught good, Outstanding day, Day demerit, Serious); Parent sees the parent list including the parent day demerit. Path A acts are not offered and are rejected by the repository if forced. Optional note. Submit writes the ledger and moves the meters immediately, then shows a "Vault updated" banner with the 50/30/20 split and a link to the Ledger.
 - **Ledger** (`/admin/ledger`) — the last 50 approved events (who, act, points, path, source, note). Sources are `Inbox` (approved claim), `Add earn` (parent stamp), or `Simulated` (verify screen). Pending and denied claims never appear here.
 - **Verify** (`/admin/verify`) — meter engine and seed checks (see below).
-- **Dev tools** (`/admin/dev`) — stand-in for the kid Earn button until Phase 4: queue a Path A claim for a chosen kid, or **Seed demo claims** (two per kid). Path B acts cannot be queued. Also lists recent claims of every status and offers a full reset of claims, ledger, and meters.
+- **Dev tools** (`/admin/dev`) — queue a Path A claim on a kid's behalf (kids normally claim from their own Earn screen), or **Seed demo claims** (two per kid, skipping acts already pending). Path B acts cannot be queued. Also lists recent claims of every status and offers a full reset of claims, ledger, and meters.
 
 What happens on **Approve**: a `LedgerEntry` is written (`userId`, `actId`, final `points`, `path: 'A'`, `source: 'inbox'`, `claimId`, note, timestamp), the meter engine is called with the final points (edited value if present, otherwise the catalog value), and the claim is marked `approved`, all in one commit. **Deny** marks the claim `denied` with an optional note and touches neither the ledger nor the meters.
 
@@ -85,7 +96,7 @@ Swapping to SQLite later means writing one more `StorageAdapter`; UI and engine 
 
 ### Kid safety rule
 
-The repository exposes **no per-user or per-sibling totals**. The only aggregate is `getMeters()` (family-wide). Ledger reads and claim resolution are prefixed `admin*` or documented ADMIN ONLY, and are only reached from admin routes behind `RequireAdmin`. Please keep it that way in later phases.
+The repository exposes **no per-user or per-sibling totals**. The only aggregate is `getMeters()` (family-wide). Kid-facing projections (`KidEarnAct`, `KidPendingClaim`) strip point values entirely; a test asserts their JSON never contains a `points` field. Ledger reads and claim resolution are prefixed `admin*` or documented ADMIN ONLY, and are only reached from admin routes behind `RequireAdmin`. Please keep it that way in later phases.
 
 ## Meter engine
 
@@ -120,9 +131,9 @@ Key exports: `splitPoints(points)`, `applyLedgerEntry(meters, points)`, `initial
 ```
 src/
   auth/          session + AuthProvider (login/logout, PIN check)
-  components/    AppShell (title + phase badge), AdminLayout tabs, MeterStrip, route guards, ui/ primitives
+  components/    AppShell (title + phase badge), AdminLayout + KidLayout tabs, MeterStrip, route guards, ui/ primitives
   data/          types, repository (claims + ledger), adapters, seed/, tests
   engine/        meter math + tests
-  lib/time/      America/Denver helpers + tests
-  routes/        LoginPage, HomeStub, InboxPage, AddEarnPage, LedgerPage, DevToolsPage, AdminVerifyPage
+  lib/time/      America/Denver helpers, placeholder period countdowns + tests
+  routes/        LoginPage, ParentConsole, InboxPage, AddEarnPage, LedgerPage, DevToolsPage, AdminVerifyPage, kid/ (Home, Earn, stubs)
 ```

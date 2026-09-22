@@ -74,6 +74,25 @@ export interface PendingClaim {
   editedPoints?: number
 }
 
+/**
+ * Kid-facing view of a catalog act. Deliberately has no `points`: kids see
+ * names only. Demerits are never projected into this shape.
+ */
+export interface KidEarnAct {
+  id: string
+  title: string
+  path: EarnPath
+  band: Band
+  rare?: boolean
+}
+
+/** Kid-facing view of their own pending claim. No points, no totals. */
+export interface KidPendingClaim {
+  id: string
+  actId: string
+  createdAt: string
+}
+
 export interface VaultMeter {
   tier: Tier
   /** Points needed to fill this meter. */

@@ -1,16 +1,26 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { AuthProvider } from '@/auth/AuthContext'
+import { AuthProvider, useAuth } from '@/auth/AuthContext'
 import { RepositoryProvider } from '@/data/RepositoryContext'
 import { AdminLayout } from '@/components/AdminLayout'
 import { AppShell } from '@/components/AppShell'
-import { RequireAdmin, RequireAuth } from '@/components/RequireAuth'
+import { KidLayout } from '@/components/KidLayout'
+import { RequireAdmin, RequireAuth, RequireKid } from '@/components/RequireAuth'
 import { AddEarnPage } from '@/routes/AddEarnPage'
 import { AdminVerifyPage } from '@/routes/AdminVerifyPage'
 import { DevToolsPage } from '@/routes/DevToolsPage'
-import { HomeStub } from '@/routes/HomeStub'
 import { InboxPage } from '@/routes/InboxPage'
 import { LedgerPage } from '@/routes/LedgerPage'
 import { LoginPage } from '@/routes/LoginPage'
+import { ParentConsole } from '@/routes/ParentConsole'
+import { KidEarnPage } from '@/routes/kid/KidEarnPage'
+import { KidHomePage } from '@/routes/kid/KidHomePage'
+import { KidStubPage } from '@/routes/kid/KidStubPage'
+
+/** `/` lands on the parent console for the admin and the kid home for everyone else. */
+function RoleHome() {
+  const { isAdmin } = useAuth()
+  return <Navigate to={isAdmin ? '/admin' : '/home'} replace />
+}
 
 export default function App() {
   return (
@@ -21,11 +31,19 @@ export default function App() {
             <Route element={<AppShell />}>
               <Route path="/login" element={<LoginPage />} />
               <Route element={<RequireAuth />}>
-                <Route index element={<HomeStub />} />
+                <Route index element={<RoleHome />} />
+              </Route>
+              <Route element={<RequireKid />}>
+                <Route element={<KidLayout />}>
+                  <Route path="/home" element={<KidHomePage />} />
+                  <Route path="/earn" element={<KidEarnPage />} />
+                  <Route path="/rewards" element={<KidStubPage kind="rewards" />} />
+                  <Route path="/wins" element={<KidStubPage kind="wins" />} />
+                </Route>
               </Route>
               <Route path="/admin" element={<RequireAdmin />}>
+                <Route index element={<ParentConsole />} />
                 <Route element={<AdminLayout />}>
-                  <Route index element={<Navigate to="/admin/inbox" replace />} />
                   <Route path="inbox" element={<InboxPage />} />
                   <Route path="add-earn" element={<AddEarnPage />} />
                   <Route path="ledger" element={<LedgerPage />} />

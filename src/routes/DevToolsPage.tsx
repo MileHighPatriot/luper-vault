@@ -16,8 +16,8 @@ const STATUS_VARIANT: Record<ClaimStatus, 'accent' | 'secondary' | 'outline'> = 
 }
 
 /**
- * ADMIN ONLY / DEV. Stand-in for the kid "I did it" button (Phase 4): lets a
- * parent queue Path A claims so the Inbox has something to process.
+ * ADMIN ONLY / DEV. Lets a parent queue Path A claims on a kid's behalf so
+ * the Inbox has something to process without switching logins.
  */
 export function DevToolsPage() {
   const repo = useRepository()
@@ -61,7 +61,7 @@ export function DevToolsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dev tools</h1>
         <p className="text-sm text-muted-foreground">
-          Temporary stand-in for the kid Earn button (Phase 4). Only Path A acts can be queued.
+          Queue Path A claims on a kid's behalf for testing. Kids normally claim from their own Earn screen.
         </p>
       </div>
 
