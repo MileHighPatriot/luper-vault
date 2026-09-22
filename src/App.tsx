@@ -12,9 +12,11 @@ import { InboxPage } from '@/routes/InboxPage'
 import { LedgerPage } from '@/routes/LedgerPage'
 import { LoginPage } from '@/routes/LoginPage'
 import { ParentConsole } from '@/routes/ParentConsole'
+import { RewardsBuilderPage } from '@/routes/RewardsBuilderPage'
 import { KidEarnPage } from '@/routes/kid/KidEarnPage'
 import { KidHomePage } from '@/routes/kid/KidHomePage'
-import { KidStubPage } from '@/routes/kid/KidStubPage'
+import { KidRewardsPage } from '@/routes/kid/KidRewardsPage'
+import { KidWinsPage } from '@/routes/kid/KidWinsPage'
 
 /** `/` lands on the parent console for the admin and the kid home for everyone else. */
 function RoleHome() {
@@ -37,8 +39,8 @@ export default function App() {
                 <Route element={<KidLayout />}>
                   <Route path="/home" element={<KidHomePage />} />
                   <Route path="/earn" element={<KidEarnPage />} />
-                  <Route path="/rewards" element={<KidStubPage kind="rewards" />} />
-                  <Route path="/wins" element={<KidStubPage kind="wins" />} />
+                  <Route path="/rewards" element={<KidRewardsPage />} />
+                  <Route path="/wins" element={<KidWinsPage />} />
                 </Route>
               </Route>
               <Route path="/admin" element={<RequireAdmin />}>
@@ -46,6 +48,7 @@ export default function App() {
                 <Route element={<AdminLayout />}>
                   <Route path="inbox" element={<InboxPage />} />
                   <Route path="add-earn" element={<AddEarnPage />} />
+                  <Route path="rewards" element={<RewardsBuilderPage />} />
                   <Route path="ledger" element={<LedgerPage />} />
                   <Route path="verify" element={<AdminVerifyPage />} />
                   <Route path="dev" element={<DevToolsPage />} />

@@ -16,13 +16,10 @@ interface ConsoleCard {
 const CARDS: ConsoleCard[] = [
   { to: '/admin/inbox', label: 'Inbox', description: 'Approve, deny, or edit pending claims.', icon: Inbox, primary: true },
   { to: '/admin/add-earn', label: 'Add earn', description: 'Stamp Path B earns and demerits directly.', icon: CirclePlus, primary: true },
+  { to: '/admin/rewards', label: 'Rewards', description: 'Set the week, month, and quarter rewards. Announce unlocks.', icon: Gift },
   { to: '/admin/ledger', label: 'Ledger', description: 'Recent approved events.', icon: ScrollText },
   { to: '/admin/verify', label: 'Verify', description: 'Meter engine and seed catalog checks.', icon: Gauge },
   { to: '/admin/dev', label: 'Dev tools', description: 'Queue demo claims and reset the store.', icon: Wrench },
-]
-
-const LATER: { label: string; icon: LucideIcon; phase: number }[] = [
-  { label: 'Rewards builder', icon: Gift, phase: 5 },
 ]
 
 /** ADMIN ONLY landing page. */
@@ -57,24 +54,9 @@ export function ParentConsole() {
           </Card>
         ))}
       </div>
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium text-muted-foreground">Coming in later phases</h2>
-        <ul className="grid gap-2 sm:grid-cols-2">
-          {LATER.map(({ label, icon: Icon, phase }) => (
-            <li
-              key={label}
-              className="flex items-center justify-between rounded-lg border border-dashed px-4 py-3 text-muted-foreground"
-              aria-disabled
-            >
-              <span className="flex items-center gap-2">
-                <Icon className="size-4" aria-hidden />
-                {label}
-              </span>
-              <Badge variant="outline">Phase {phase}</Badge>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <p className="text-xs text-muted-foreground">
+        Still to come: the Mon–Sat cutoff and Sunday celebrate mode (Phase 6).
+      </p>
     </div>
   )
 }

@@ -103,6 +103,44 @@ export interface VaultMeter {
   overflowTenths: number
 }
 
+/** A period reward tied to one vault meter: T1 = week, T2 = month, T3 = quarter. */
+export interface Reward {
+  id: string
+  tier: Tier
+  title: string
+  blurb: string
+  /** Inactive rewards are hidden from kids but kept for history. */
+  active: boolean
+  createdAt: string
+  updatedAt: string
+  /** Set when a parent announces it. Kids see the banner on Home once each. */
+  announcement?: {
+    at: string
+    seenBy: string[]
+  }
+}
+
+/** Kid-facing reward projection. No costs, no per-person data. */
+export interface KidReward {
+  id: string
+  tier: Tier
+  title: string
+  blurb: string
+  announced: boolean
+}
+
+export type WinKind = 'unlock' | 'announce'
+
+/** Something the family unlocked or a parent announced. Family-wide; no names, no scores. */
+export interface Win {
+  id: string
+  kind: WinKind
+  tier: Tier
+  title: string
+  rewardId: string | null
+  createdAt: string
+}
+
 export interface Settings {
   schemaVersion: number
   verse: string
@@ -115,5 +153,7 @@ export interface Database {
   ledger: LedgerEntry[]
   pendingClaims: PendingClaim[]
   vaultMeters: VaultMeter[]
+  rewards: Reward[]
+  wins: Win[]
   settings: Settings
 }

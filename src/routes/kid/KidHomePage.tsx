@@ -7,6 +7,7 @@ import type { Tier, VaultMeter } from '@/data/types'
 import { meterPercent, meterPoints } from '@/engine/meters'
 import { describeDaysLeft, periodCountdowns } from '@/lib/time/periods'
 import { formatDenver } from '@/lib/time/denver'
+import { AnnouncementBanner } from '@/components/AnnouncementBanner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
@@ -84,6 +85,8 @@ export function KidHomePage() {
           </span>
         )}
       </div>
+
+      {user && <AnnouncementBanner userId={user.id} />}
 
       <section aria-labelledby="vault-heading" className="space-y-3">
         <h2 id="vault-heading" className="text-lg font-semibold">

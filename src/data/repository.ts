@@ -5,16 +5,20 @@ import type {
   EarnPath,
   KidEarnAct,
   KidPendingClaim,
+  KidReward,
   LedgerEntry,
   LedgerSource,
   PendingClaim,
+  Reward,
   Settings,
+  Tier,
   User,
   VaultMeter,
+  Win,
 } from './types'
-import { applyLedgerEntry } from '@/engine/meters'
+import { applyLedgerEntry, isMeterFull } from '@/engine/meters'
 import { denverDateKey } from '@/lib/time/denver'
-import { buildSeedDatabase, SCHEMA_VERSION } from './seed'
+import { buildSeedDatabase, migrateDatabase, SCHEMA_VERSION, TIER_PERIOD } from './seed'
 
 /**
  * Persistence boundary. Anything that can load/save a whole `Database`
@@ -72,6 +76,15 @@ export interface AddEarnInput {
   note?: string
 }
 
+export class RewardError extends Error {
+  readonly code: 'not-found' | 'empty-title'
+  constructor(code: RewardError['code'], message: string) {
+    super(message)
+    this.name = 'RewardError'
+    this.code = code
+  }
+}
+
 export class AddEarnError extends Error {
   readonly code: 'unknown-user' | 'unknown-act' | 'not-path-b' | 'wrong-band'
   constructor(code: AddEarnError['code'], message: string) {
@@ -106,7 +119,14 @@ export class Repository {
     if (existing && existing.settings?.schemaVersion === SCHEMA_VERSION) {
       return existing
     }
-    // Missing or stale schema: reseed. There is no user data worth migrating in Phase 1.
+    if (existing) {
+      const migrated = migrateDatabase(existing)
+      if (migrated) {
+        this.adapter.save(migrated)
+        return migrated
+      }
+    }
+    // Missing or too-old snapshot: reseed.
     const seeded = buildSeedDatabase()
     this.adapter.save(seeded)
     return seeded
@@ -295,10 +315,9 @@ export class Repository {
       ...(input.note !== undefined ? { parentNote: input.note } : {}),
     }
     this.commit({
-      ...this.db,
+      ...this.applyPointsToDb(this.db, points, now),
       pendingClaims: this.db.pendingClaims.map((c) => (c.id === claim.id ? resolved : c)),
       ledger: [...this.db.ledger, entry],
-      vaultMeters: applyLedgerEntry(this.db.vaultMeters, points),
     })
     return entry
   }
@@ -358,11 +377,36 @@ export class Repository {
       createdAt: new Date().toISOString(),
     }
     this.commit({
-      ...this.db,
+      ...this.applyPointsToDb(this.db, input.points, entry.createdAt),
       ledger: [...this.db.ledger, entry],
-      vaultMeters: applyLedgerEntry(this.db.vaultMeters, input.points),
     })
     return entry
+  }
+
+  /**
+   * Run points through the meter engine and record an unlock Win for any
+   * meter that just reached its fill. The Win names the active reward for that
+   * tier (first by creation) or falls back to a generic label.
+   */
+  private applyPointsToDb(db: Database, points: number, at: string): Database {
+    const before = db.vaultMeters
+    const after = applyLedgerEntry(before, points)
+    const wins = [...db.wins]
+    for (const meter of after) {
+      const was = before.find((m) => m.tier === meter.tier)
+      if (was && !isMeterFull(was) && isMeterFull(meter)) {
+        const reward = db.rewards.find((r) => r.tier === meter.tier && r.active)
+        wins.push({
+          id: newId(),
+          kind: 'unlock',
+          tier: meter.tier,
+          title: reward ? reward.title : `${TIER_PERIOD[meter.tier]} vault filled`,
+          rewardId: reward?.id ?? null,
+          createdAt: at,
+        })
+      }
+    }
+    return { ...db, vaultMeters: after, wins }
   }
 
   /** Family-wide meters. Safe to show to anyone. */
@@ -380,10 +424,113 @@ export class Repository {
     return [...this.db.ledger].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit)
   }
 
-  /** ADMIN ONLY. Zero the meters, ledger, and claims for engine verification. */
+  /** ADMIN ONLY. Zero the meters, ledger, claims, and wins for engine verification. Rewards are kept. */
   adminResetMetersAndLedger(): void {
     const fresh = buildSeedDatabase()
-    this.commit({ ...this.db, ledger: [], pendingClaims: [], vaultMeters: fresh.vaultMeters })
+    this.commit({ ...this.db, ledger: [], pendingClaims: [], wins: [], vaultMeters: fresh.vaultMeters })
+  }
+
+  // --- rewards + wins ------------------------------------------------------
+
+  /** KID-FACING. Active rewards for the Rewards screen, by tier then creation order. */
+  listRewardsForKids(): KidReward[] {
+    return this.db.rewards
+      .filter((r) => r.active)
+      .map(({ id, tier, title, blurb, announcement }) => ({ id, tier, title, blurb, announced: Boolean(announcement) }))
+  }
+
+  /** KID-FACING. Announced, active rewards this kid has not been shown yet. */
+  listUnseenAnnouncements(userId: string): KidReward[] {
+    return this.db.rewards
+      .filter((r) => r.active && r.announcement && !r.announcement.seenBy.includes(userId))
+      .map(({ id, tier, title, blurb }) => ({ id, tier, title, blurb, announced: true }))
+  }
+
+  /** KID-FACING. Mark announcements as shown to this kid so the Home banner appears once. */
+  markAnnouncementsSeen(userId: string, rewardIds: string[]): void {
+    if (rewardIds.length === 0) return
+    const ids = new Set(rewardIds)
+    this.commit({
+      ...this.db,
+      rewards: this.db.rewards.map((r) =>
+        ids.has(r.id) && r.announcement && !r.announcement.seenBy.includes(userId)
+          ? { ...r, announcement: { ...r.announcement, seenBy: [...r.announcement.seenBy, userId] } }
+          : r,
+      ),
+    })
+  }
+
+  /** KID-FACING. Unlock and announce events, newest first. Family-wide; no names or scores. */
+  listWins(): Win[] {
+    return [...this.db.wins].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }
+
+  /** ADMIN ONLY. Every reward including inactive ones. */
+  adminListRewards(): Reward[] {
+    return [...this.db.rewards]
+  }
+
+  adminCreateReward(input: { tier: Tier; title: string; blurb: string }): Reward {
+    const title = input.title.trim()
+    if (!title) throw new RewardError('empty-title', 'Reward needs a title')
+    const at = new Date().toISOString()
+    const reward: Reward = {
+      id: newId(),
+      tier: input.tier,
+      title,
+      blurb: input.blurb.trim(),
+      active: true,
+      createdAt: at,
+      updatedAt: at,
+    }
+    this.commit({ ...this.db, rewards: [...this.db.rewards, reward] })
+    return reward
+  }
+
+  adminUpdateReward(id: string, patch: { title?: string; blurb?: string; active?: boolean }): Reward {
+    const reward = this.requireReward(id)
+    const title = patch.title === undefined ? reward.title : patch.title.trim()
+    if (!title) throw new RewardError('empty-title', 'Reward needs a title')
+    const next: Reward = {
+      ...reward,
+      title,
+      blurb: patch.blurb === undefined ? reward.blurb : patch.blurb.trim(),
+      active: patch.active ?? reward.active,
+      updatedAt: new Date().toISOString(),
+    }
+    this.commit({ ...this.db, rewards: this.db.rewards.map((r) => (r.id === id ? next : r)) })
+    return next
+  }
+
+  /**
+   * ADMIN ONLY. Announce a reward: stamps it, records an announce Win, and
+   * queues the one-time banner for every kid. Announcing twice is a no-op.
+   */
+  adminAnnounceReward(id: string): Reward {
+    const reward = this.requireReward(id)
+    if (reward.announcement) return reward
+    const at = new Date().toISOString()
+    const next: Reward = { ...reward, announcement: { at, seenBy: [] }, updatedAt: at }
+    const win: Win = {
+      id: newId(),
+      kind: 'announce',
+      tier: reward.tier,
+      title: reward.title,
+      rewardId: reward.id,
+      createdAt: at,
+    }
+    this.commit({
+      ...this.db,
+      rewards: this.db.rewards.map((r) => (r.id === id ? next : r)),
+      wins: [...this.db.wins, win],
+    })
+    return next
+  }
+
+  private requireReward(id: string): Reward {
+    const reward = this.db.rewards.find((r) => r.id === id)
+    if (!reward) throw new RewardError('not-found', `Reward ${id} not found`)
+    return reward
   }
 
   /**

@@ -6,14 +6,13 @@ interface KidTab {
   to: string
   label: string
   icon: LucideIcon
-  stubPhase?: number
 }
 
 const TABS: KidTab[] = [
   { to: '/home', label: 'Home', icon: Home },
   { to: '/earn', label: 'Earn', icon: Coins },
-  { to: '/rewards', label: 'Rewards', icon: Gift, stubPhase: 5 },
-  { to: '/wins', label: 'Wins', icon: Trophy, stubPhase: 5 },
+  { to: '/rewards', label: 'Rewards', icon: Gift },
+  { to: '/wins', label: 'Wins', icon: Trophy },
 ]
 
 /**
@@ -25,7 +24,7 @@ export function KidLayout() {
     <div className="flex flex-col gap-6">
       <nav aria-label="Kid sections" className="-mx-4 overflow-x-auto px-4">
         <ul className="flex gap-1 border-b">
-          {TABS.map(({ to, label, icon: Icon, stubPhase }) => (
+          {TABS.map(({ to, label, icon: Icon }) => (
             <li key={to}>
               <NavLink
                 to={to}
@@ -40,11 +39,6 @@ export function KidLayout() {
               >
                 <Icon className="size-4" aria-hidden />
                 {label}
-                {stubPhase && (
-                  <span className="rounded-full border px-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Phase {stubPhase}
-                  </span>
-                )}
               </NavLink>
             </li>
           ))}
