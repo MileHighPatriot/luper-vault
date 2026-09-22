@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { CirclePlus, Gauge, Gift, Inbox, ScrollText, Wrench, type LucideIcon } from 'lucide-react'
+import { CirclePlus, Clock, Gauge, Gift, Inbox, ScrollText, Wrench, type LucideIcon } from 'lucide-react'
 import { useRepositoryValue } from '@/data/RepositoryContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,7 @@ const CARDS: ConsoleCard[] = [
   { to: '/admin/add-earn', label: 'Add earn', description: 'Stamp Path B earns and demerits directly.', icon: CirclePlus, primary: true },
   { to: '/admin/rewards', label: 'Rewards', description: 'Set the week, month, and quarter rewards. Announce unlocks.', icon: Gift },
   { to: '/admin/ledger', label: 'Ledger', description: 'Recent approved events.', icon: ScrollText },
+  { to: '/admin/clock', label: 'Clock', description: 'Denver time, go-live and earn-window status, FORCE_LIVE.', icon: Clock },
   { to: '/admin/verify', label: 'Verify', description: 'Meter engine and seed catalog checks.', icon: Gauge },
   { to: '/admin/dev', label: 'Dev tools', description: 'Queue demo claims and reset the store.', icon: Wrench },
 ]
@@ -55,7 +56,7 @@ export function ParentConsole() {
         ))}
       </div>
       <p className="text-xs text-muted-foreground">
-        Still to come: the Mon–Sat cutoff and Sunday celebrate mode (Phase 6).
+        All six Monday-ready phases are in. Go-live Mon Sep 28, 2026; month and quarter tiers open Oct 1.
       </p>
     </div>
   )

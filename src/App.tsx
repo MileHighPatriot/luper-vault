@@ -11,6 +11,7 @@ import { DevToolsPage } from '@/routes/DevToolsPage'
 import { InboxPage } from '@/routes/InboxPage'
 import { LedgerPage } from '@/routes/LedgerPage'
 import { LoginPage } from '@/routes/LoginPage'
+import { ClockPage } from '@/routes/ClockPage'
 import { ParentConsole } from '@/routes/ParentConsole'
 import { RewardsBuilderPage } from '@/routes/RewardsBuilderPage'
 import { KidEarnPage } from '@/routes/kid/KidEarnPage'
@@ -50,6 +51,7 @@ export default function App() {
                   <Route path="add-earn" element={<AddEarnPage />} />
                   <Route path="rewards" element={<RewardsBuilderPage />} />
                   <Route path="ledger" element={<LedgerPage />} />
+                  <Route path="clock" element={<ClockPage />} />
                   <Route path="verify" element={<AdminVerifyPage />} />
                   <Route path="dev" element={<DevToolsPage />} />
                 </Route>

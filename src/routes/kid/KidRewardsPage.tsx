@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Gift, Lock, LockOpen, Megaphone } from 'lucide-react'
+import { Gift, Lock, LockOpen, Megaphone, PartyPopper } from 'lucide-react'
 import { useRepositoryValue } from '@/data/RepositoryContext'
+import { useHouseholdClock } from '@/data/useHouseholdClock'
 import { TIER_PERIOD } from '@/data/seed'
 import type { Tier } from '@/data/types'
 import { TIERS, isMeterFull, meterPercent } from '@/engine/meters'
@@ -19,6 +20,8 @@ const VAULT_LABEL: Record<Tier, string> = { T1: 'Vault 1', T2: 'Vault 2', T3: 'V
  */
 export function KidRewardsPage() {
   const [tier, setTier] = useState<Tier>('T1')
+  const { window: earn } = useHouseholdClock()
+  const sunday = earn.reason === 'sunday'
   const rewards = useRepositoryValue((r) => r.listRewardsForKids())
   const meters = useRepositoryValue((r) => r.getMeters())
   const meter = meters.find((m) => m.tier === tier)
@@ -34,6 +37,17 @@ export function KidRewardsPage() {
           Fill a vault together and the whole family unlocks its reward.
         </p>
       </div>
+
+      {sunday && (
+        <p
+          role="status"
+          data-testid="rewards-sunday"
+          className="flex items-center gap-2 rounded-xl border border-accent-foreground/20 bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground"
+        >
+          <PartyPopper className="size-4" aria-hidden />
+          Reward day — no claims today. Time to enjoy what the family unlocked.
+        </p>
+      )}
 
       <div role="tablist" aria-label="Reward period" className="grid grid-cols-3 gap-2">
         {TIERS.map((t) => {

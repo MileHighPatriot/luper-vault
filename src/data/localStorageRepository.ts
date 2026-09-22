@@ -1,5 +1,5 @@
 import type { Database } from './types'
-import { Repository, type StorageAdapter } from './repository'
+import { Repository, type RepositoryOptions, type StorageAdapter } from './repository'
 
 export const STORAGE_KEY = 'luper-ledger:db'
 
@@ -34,6 +34,9 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 }
 
-export function createLocalStorageRepository(storage: Storage = window.localStorage): Repository {
-  return new Repository(new LocalStorageAdapter(storage))
+export function createLocalStorageRepository(
+  storage: Storage = window.localStorage,
+  options: RepositoryOptions = {},
+): Repository {
+  return new Repository(new LocalStorageAdapter(storage), options)
 }

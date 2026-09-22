@@ -17,6 +17,7 @@ import type {
   Win,
 } from './types'
 import { applyLedgerEntry, isMeterFull } from '@/engine/meters'
+import { earnWindow, type EarnWindow } from '@/lib/time/calendar'
 import { denverDateKey } from '@/lib/time/denver'
 import { buildSeedDatabase, migrateDatabase, SCHEMA_VERSION, TIER_PERIOD } from './seed'
 
@@ -62,6 +63,7 @@ export class ClaimError extends Error {
     | 'bad-points'
     | 'unknown-act'
     | 'already-pending'
+    | 'window-closed'
   constructor(code: ClaimError['code'], message: string) {
     super(message)
     this.name = 'ClaimError'
@@ -104,14 +106,60 @@ type Listener = () => void
  * aggregate this layer exposes is the family vault meters. Ledger reads exist
  * for admin tooling and are gated at the route level.
  */
+export interface RepositoryOptions {
+  /** Build-time FORCE_LIVE (VITE_FORCE_LIVE=true). OR-ed with the settings toggle. */
+  envForceLive?: boolean
+}
+
 export class Repository {
   private db: Database
   private readonly adapter: StorageAdapter
   private readonly listeners = new Set<Listener>()
+  private readonly envForceLive: boolean
 
-  constructor(adapter: StorageAdapter) {
+  constructor(adapter: StorageAdapter, options: RepositoryOptions = {}) {
     this.adapter = adapter
+    this.envForceLive = options.envForceLive ?? false
     this.db = this.loadOrSeed()
+  }
+
+  // --- clock + calendar gates ---------------------------------------------
+
+  /** "Now" for every gate and countdown. Honors the dev clock override. */
+  now(): Date {
+    const override = this.db.settings.clockOverride
+    if (override) {
+      const parsed = new Date(override)
+      if (!Number.isNaN(parsed.getTime())) return parsed
+    }
+    return new Date()
+  }
+
+  isClockOverridden(): boolean {
+    return Boolean(this.db.settings.clockOverride)
+  }
+
+  /** Effective FORCE_LIVE: settings toggle or build-time env. */
+  isForceLive(): boolean {
+    return this.db.settings.forceLive || this.envForceLive
+  }
+
+  /** Can a kid send a Path A claim right now? Family-wide; safe for kids. */
+  getEarnWindow(now: Date = this.now()): EarnWindow {
+    return earnWindow(now, { forceLive: this.isForceLive() })
+  }
+
+  /** ADMIN ONLY. Parent testing switch (persisted). */
+  adminSetForceLive(on: boolean): void {
+    this.commit({ ...this.db, settings: { ...this.db.settings, forceLive: on } })
+  }
+
+  /** ADMIN ONLY / DEV. Freeze "now" at an instant (or clear with null). */
+  adminSetClockOverride(iso: string | null): void {
+    if (iso !== null && Number.isNaN(new Date(iso).getTime())) {
+      throw new RangeError(`Invalid clock override ${iso}`)
+    }
+    this.commit({ ...this.db, settings: { ...this.db.settings, clockOverride: iso } })
   }
 
   private loadOrSeed(): Database {
@@ -285,6 +333,19 @@ export class Repository {
   }
 
   /**
+   * KID-FACING. The "I did it" button. Same as `queueClaim` but enforces the
+   * household calendar: closed before go-live (unless FORCE_LIVE), on Sundays,
+   * and after the 8 PM Denver cutoff. Admin Dev tools use `queueClaim` directly.
+   */
+  claimForKid(input: QueueClaimInput): PendingClaim {
+    const window = this.getEarnWindow()
+    if (!window.open) {
+      throw new ClaimError('window-closed', window.message)
+    }
+    return this.queueClaim({ ...input, createdAt: input.createdAt ?? this.now().toISOString() })
+  }
+
+  /**
    * ADMIN ONLY. Approve a pending claim: write the ledger, move the meters,
    * mark the claim approved. Edited points win over the catalog value.
    */
@@ -342,7 +403,7 @@ export class Repository {
    * ADMIN ONLY. Approve every pending claim created on the given Denver
    * calendar day (default: today) at its requested/edited points.
    */
-  approveAllPendingOn(dateKey: string = denverDateKey()): LedgerEntry[] {
+  approveAllPendingOn(dateKey: string = denverDateKey(this.now())): LedgerEntry[] {
     const targets = this.listPendingClaims().filter((c) => denverDateKey(new Date(c.createdAt)) === dateKey)
     // Oldest first so the ledger reads chronologically.
     return targets.reverse().map((c) => this.approveClaim(c.id))

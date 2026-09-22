@@ -1,20 +1,26 @@
 import { useState } from 'react'
-import { Check, Hand, Hourglass, Lock } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Check, Hand, Hourglass, Lock, Moon, PartyPopper } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { useRepository, useRepositoryValue } from '@/data/RepositoryContext'
+import { useHouseholdClock } from '@/data/useHouseholdClock'
 import type { KidEarnAct } from '@/data/types'
 import { ClaimError } from '@/data/repository'
+import { formatDenver } from '@/lib/time/denver'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 function ClaimableRow({
   act,
   pending,
+  open,
   onClaim,
 }: {
   act: KidEarnAct
   pending: boolean
+  open: boolean
   onClaim(): void
 }) {
   return (
@@ -31,10 +37,15 @@ function ClaimableRow({
           <Hourglass className="size-3.5" aria-hidden />
           Waiting for Ground Control
         </span>
-      ) : (
+      ) : open ? (
         <Button size="sm" onClick={onClaim} className="self-start sm:self-auto">
           <Check className="size-4" aria-hidden />I did it
         </Button>
+      ) : (
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Lock className="size-3.5" aria-hidden />
+          Closed
+        </span>
       )}
     </li>
   )
@@ -66,6 +77,7 @@ export function KidEarnPage() {
   const acts = useRepositoryValue((r) => r.listEarnActsForKid(userId))
   const pendingActIds = useRepositoryValue((r) => r.listKidPendingClaims(userId).map((c) => c.actId))
   const [error, setError] = useState<string | null>(null)
+  const { window: earn } = useHouseholdClock()
 
   const claimable = acts.filter((a) => a.path === 'A')
   const parentStamps = acts.filter((a) => a.path === 'B')
@@ -73,7 +85,7 @@ export function KidEarnPage() {
 
   function claim(act: KidEarnAct) {
     try {
-      repo.queueClaim({ userId, actId: act.id })
+      repo.claimForKid({ userId, actId: act.id })
       setError(null)
     } catch (err) {
       setError(err instanceof ClaimError ? err.message : 'Could not send that. Try again.')
@@ -88,6 +100,50 @@ export function KidEarnPage() {
           Did one of these? Tap “I did it” and a parent will check it. Everything you earn goes into the family vault.
         </p>
       </div>
+
+      {earn.open ? (
+        <p className="text-xs text-muted-foreground">{earn.message}</p>
+      ) : (
+        <div
+          role="status"
+          data-testid="earn-closed"
+          className={cn(
+            'flex flex-col gap-2 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between',
+            earn.reason === 'sunday' ? 'border-accent-foreground/20 bg-accent text-accent-foreground' : 'bg-secondary',
+          )}
+        >
+          <div className="flex items-start gap-3">
+            {earn.reason === 'sunday' ? (
+              <PartyPopper className="mt-0.5 size-5 shrink-0" aria-hidden />
+            ) : (
+              <Moon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+            )}
+            <div className="text-sm">
+              <p className="font-semibold">
+                {earn.reason === 'sunday'
+                  ? 'Reward day — no claims today'
+                  : earn.reason === 'before-go-live'
+                    ? 'Not open yet'
+                    : 'Claims are closed for tonight'}
+              </p>
+              <p className={earn.reason === 'sunday' ? 'opacity-80' : 'text-muted-foreground'}>
+                {earn.message}
+                {earn.reopensAt ? ` Opens ${formatDenver(earn.reopensAt)}.` : ''}
+              </p>
+            </div>
+          </div>
+          {earn.reason === 'sunday' && (
+            <div className="flex gap-2 sm:shrink-0">
+              <Button asChild size="sm" variant="outline" className="bg-card">
+                <Link to="/rewards">Rewards</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="bg-card">
+                <Link to="/wins">Wins</Link>
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {pendingSet.size > 0 && (
         <p role="status" className="text-sm text-muted-foreground">
@@ -115,7 +171,13 @@ export function KidEarnPage() {
           ) : (
             <ul className="divide-y border-t">
               {claimable.map((act) => (
-                <ClaimableRow key={act.id} act={act} pending={pendingSet.has(act.id)} onClaim={() => claim(act)} />
+                <ClaimableRow
+                  key={act.id}
+                  act={act}
+                  pending={pendingSet.has(act.id)}
+                  open={earn.open}
+                  onClaim={() => claim(act)}
+                />
               ))}
             </ul>
           )}

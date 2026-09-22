@@ -1,11 +1,11 @@
-import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { BookOpenText, CalendarDays, Coins, Sparkles } from 'lucide-react'
+import { BookOpenText, CalendarDays, Coins, PartyPopper, Sparkles } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { useRepositoryValue } from '@/data/RepositoryContext'
+import { useHouseholdClock } from '@/data/useHouseholdClock'
 import type { Tier, VaultMeter } from '@/data/types'
 import { meterPercent, meterPoints } from '@/engine/meters'
-import { describeDaysLeft, periodCountdowns } from '@/lib/time/periods'
+import { CUTOFF_LABEL, countdowns, formatRemaining } from '@/lib/time/calendar'
 import { formatDenver } from '@/lib/time/denver'
 import { AnnouncementBanner } from '@/components/AnnouncementBanner'
 import { Button } from '@/components/ui/button'
@@ -62,9 +62,9 @@ export function KidHomePage() {
   const meters = useRepositoryValue((r) => r.getMeters())
   const verse = useRepositoryValue((r) => r.getSettings().verse)
   const lastMovedAt = useRepositoryValue((r) => r.getVaultLastMovedAt())
-  // Snapshot "now" once per mount; the page is short-lived and re-mounts on navigation.
-  const [now] = useState(() => new Date())
-  const countdowns = periodCountdowns(now)
+  const { now, window: earn } = useHouseholdClock()
+  const chips = countdowns(now)
+  const sunday = earn.reason === 'sunday'
 
   const movedRecently = lastMovedAt !== null && now.getTime() - new Date(lastMovedAt).getTime() < RECENT_WINDOW_MS
 
@@ -73,7 +73,11 @@ export function KidHomePage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Hi, {user?.name}.</h1>
-          <p className="text-sm text-muted-foreground">This is the family vault. Everyone fills it together.</p>
+          <p className="text-sm text-muted-foreground">
+            {sunday
+              ? 'Reward day. Nothing to claim; enjoy what the family unlocked.'
+              : 'This is the family vault. Everyone fills it together.'}
+          </p>
         </div>
         {movedRecently && lastMovedAt && (
           <span
@@ -88,6 +92,30 @@ export function KidHomePage() {
 
       {user && <AnnouncementBanner userId={user.id} />}
 
+      {sunday && (
+        <div
+          role="status"
+          data-testid="sunday-mode"
+          className="flex flex-col gap-3 rounded-xl border border-accent-foreground/20 bg-accent p-4 text-accent-foreground sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-start gap-3">
+            <PartyPopper className="mt-0.5 size-5 shrink-0" aria-hidden />
+            <div className="text-sm">
+              <p className="font-semibold">Reward day — no claims today</p>
+              <p className="opacity-80">Sundays are for celebrating. Claims reopen Monday morning.</p>
+            </div>
+          </div>
+          <div className="flex gap-2 sm:shrink-0">
+            <Button asChild size="sm" variant="outline" className="bg-card">
+              <Link to="/rewards">Rewards</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="bg-card">
+              <Link to="/wins">Wins</Link>
+            </Button>
+          </div>
+        </div>
+      )}
+
       <section aria-labelledby="vault-heading" className="space-y-3">
         <h2 id="vault-heading" className="text-lg font-semibold">
           Family vault
@@ -97,12 +125,19 @@ export function KidHomePage() {
             <FamilyMeter key={m.tier} meter={m} />
           ))}
         </div>
-        <Button asChild>
-          <Link to="/earn">
-            <Coins className="size-4" aria-hidden />
-            Go earn
-          </Link>
-        </Button>
+        {earn.open ? (
+          <Button asChild>
+            <Link to="/earn">
+              <Coins className="size-4" aria-hidden />
+              Go earn
+            </Link>
+          </Button>
+        ) : (
+          <p className="text-sm text-muted-foreground" data-testid="earn-closed-home">
+            {earn.message}
+            {earn.reopensAt ? ` Opens ${formatDenver(earn.reopensAt)}.` : ''}
+          </p>
+        )}
       </section>
 
       <section aria-labelledby="countdown-heading" className="space-y-3">
@@ -111,15 +146,19 @@ export function KidHomePage() {
           Time left
         </h2>
         <div className="grid gap-3 sm:grid-cols-3">
-          {countdowns.map((c) => (
-            <div key={c.kind} className="rounded-xl border bg-card px-4 py-3">
+          {chips.map((c) => (
+            <div key={c.kind} className="rounded-xl border bg-card px-4 py-3" data-testid={`countdown-${c.kind}`}>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{c.label}</p>
-              <p className="text-lg font-semibold">{describeDaysLeft(c.daysLeft)}</p>
-              <p className="text-xs text-muted-foreground">Through {c.endsOn}</p>
+              <p className="text-lg font-semibold tabular-nums">{formatRemaining(c.remainingMs)}</p>
+              <p className="text-xs text-muted-foreground">
+                {c.detail} · {formatDenver(c.target)}
+              </p>
             </div>
           ))}
         </div>
-        <p className="text-xs text-muted-foreground">Placeholder countdowns. The real cutoff arrives in Phase 6.</p>
+        <p className="text-xs text-muted-foreground">
+          Earn Monday–Saturday until {CUTOFF_LABEL} Denver. Sunday is reward day.
+        </p>
       </section>
 
       <Card className="bg-secondary/50">

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, CheckCheck, Inbox, Pencil, X } from 'lucide-react'
 import { useRepository, useRepositoryValue } from '@/data/RepositoryContext'
+import { useHouseholdClock } from '@/data/useHouseholdClock'
 import type { PendingClaim } from '@/data/types'
 import { ClaimError } from '@/data/repository'
 import { denverDateKey, formatDenver } from '@/lib/time/denver'
@@ -141,7 +142,7 @@ export function InboxPage() {
 
   const nameOf = (id: string) => users.find((u) => u.id === id)?.name ?? id
   const titleOf = (id: string) => acts.find((a) => a.id === id)?.title ?? id
-  const today = denverDateKey()
+  const today = denverDateKey(useHouseholdClock().now)
   const todayCount = claims.filter((c) => denverDateKey(new Date(c.createdAt)) === today).length
 
   function approveAllToday() {

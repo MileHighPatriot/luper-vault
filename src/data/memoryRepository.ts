@@ -1,5 +1,5 @@
 import type { Database } from './types'
-import { Repository, type StorageAdapter } from './repository'
+import { Repository, type RepositoryOptions, type StorageAdapter } from './repository'
 
 /** In-memory snapshot. Used by tests and anywhere without `localStorage`. */
 export class MemoryAdapter implements StorageAdapter {
@@ -18,6 +18,6 @@ export class MemoryAdapter implements StorageAdapter {
   }
 }
 
-export function createMemoryRepository(): Repository {
-  return new Repository(new MemoryAdapter())
+export function createMemoryRepository(options: RepositoryOptions = {}): Repository {
+  return new Repository(new MemoryAdapter(), options)
 }

@@ -5,12 +5,16 @@ import { createMemoryRepository } from './memoryRepository'
 
 const RepositoryContext = createContext<Repository | null>(null)
 
+/** VITE_FORCE_LIVE=true lets parents test claims before the 2026-09-28 go-live. */
+const ENV_FORCE_LIVE = import.meta.env.VITE_FORCE_LIVE === 'true'
+
 function createDefaultRepository(): Repository {
+  const options = { envForceLive: ENV_FORCE_LIVE }
   try {
-    return createLocalStorageRepository()
+    return createLocalStorageRepository(window.localStorage, options)
   } catch {
     // Private mode / storage disabled: fall back so the app still runs.
-    return createMemoryRepository()
+    return createMemoryRepository(options)
   }
 }
 

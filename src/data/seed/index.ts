@@ -6,9 +6,9 @@ import { SEED_USERS } from './users'
 
 /**
  * v1 Phase 1 foundation · v2 Phase 2 claim status + ledger source ·
- * v3 Phase 5 rewards + wins tables.
+ * v3 Phase 5 rewards + wins tables · v4 Phase 6 forceLive + clockOverride settings.
  */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 /** Placeholder until the settings screen lands in a later phase. */
 export const PLACEHOLDER_VERSE =
@@ -27,6 +27,8 @@ export function buildSeedDatabase(now: Date = new Date()): Database {
       schemaVersion: SCHEMA_VERSION,
       verse: PLACEHOLDER_VERSE,
       seededAt: now.toISOString(),
+      forceLive: false,
+      clockOverride: null,
     },
   }
 }
@@ -42,6 +44,10 @@ export function migrateDatabase(db: Database, now: Date = new Date()): Database 
   if (version === 2) {
     next = { ...next, rewards: buildSeedRewards(now), wins: [] }
     version = 3
+  }
+  if (version === 3) {
+    next = { ...next, settings: { ...next.settings, forceLive: false, clockOverride: null } }
+    version = 4
   }
   if (version !== SCHEMA_VERSION) return null
   return { ...next, settings: { ...next.settings, schemaVersion: SCHEMA_VERSION } }

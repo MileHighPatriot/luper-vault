@@ -145,6 +145,16 @@ export interface Settings {
   schemaVersion: number
   verse: string
   seededAt: string
+  /**
+   * Parent testing switch: treat the app as live before go-live (2026-09-28).
+   * Never bypasses Sunday or the 8 PM cutoff. Also settable via VITE_FORCE_LIVE.
+   */
+  forceLive: boolean
+  /**
+   * DEV ONLY. When set, every gate and countdown treats this instant as "now"
+   * so parents can preview Sunday mode or the cutoff. Cleared from the Clock panel.
+   */
+  clockOverride: string | null
 }
 
 export interface Database {

@@ -1,6 +1,9 @@
 import { Link, Outlet } from 'react-router-dom'
-import { BookOpenText, LogOut } from 'lucide-react'
+import { BookOpenText, Clock, LogOut, Rocket } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
+import { useHouseholdClock } from '@/data/useHouseholdClock'
+import { isBeforeGoLive } from '@/lib/time/calendar'
+import { formatDenver } from '@/lib/time/denver'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
@@ -8,14 +11,30 @@ export const APP_NAME = 'The Luper Ledger'
 
 export function PhaseBadge() {
   return (
-    <Badge variant="accent" title="Everything but the calendar gate. Mon–Sat cutoff and Sunday celebrate mode land in Phase 6.">
-      Phase 5 of 6
+    <Badge variant="accent" title="All six Monday-ready phases are in. Later polish tickets are tracked separately.">
+      Phase 6 of 6
     </Badge>
+  )
+}
+
+/** Everyone sees this until the 2026-09-28 go-live. */
+function GoLiveBanner({ forceLive }: { forceLive: boolean }) {
+  return (
+    <div role="status" data-testid="go-live-banner" className="border-b bg-accent text-accent-foreground">
+      <div className="mx-auto flex w-full max-w-4xl items-center gap-2 px-4 py-2 text-sm">
+        <Rocket className="size-4 shrink-0" aria-hidden />
+        <span>
+          <span className="font-semibold">Family go-live Mon Sep 28</span> — October month starts Oct 1.
+          {forceLive ? ' FORCE_LIVE is on: claims are allowed for parent testing.' : ' Nothing counts yet.'}
+        </span>
+      </div>
+    </div>
   )
 }
 
 export function AppShell() {
   const { user, isAdmin, logout } = useAuth()
+  const { now, isOverridden, forceLive } = useHouseholdClock()
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -26,6 +45,17 @@ export function AppShell() {
             <span>{APP_NAME}</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
+            {isAdmin && isOverridden && (
+              <Link
+                to="/admin/clock"
+                className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-semibold text-destructive"
+                title="A clock preview is active. Every gate uses this time."
+                data-testid="clock-preview-chip"
+              >
+                <Clock className="size-3.5" aria-hidden />
+                <span className="hidden sm:inline">Preview:</span> {formatDenver(now)}
+              </Link>
+            )}
             <PhaseBadge />
             {user && (
               <>
@@ -43,13 +73,16 @@ export function AppShell() {
         </div>
       </header>
 
+      {isBeforeGoLive(now) && <GoLiveBanner forceLive={forceLive} />}
+
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-6 sm:py-8">
         <Outlet />
       </main>
 
       <footer className="border-t">
         <div className="mx-auto w-full max-w-4xl px-4 py-3 text-xs text-muted-foreground">
-          Phase 5 of 6. The Mon–Sat cutoff and Sunday celebrate mode arrive in Phase 6.
+          Phase 6 of 6. Earn Mon–Sat until 8:00 PM Denver; Sunday is reward day. Go-live Mon Sep 28, 2026; month and
+          quarter tiers open Oct 1.
         </div>
       </footer>
     </div>
