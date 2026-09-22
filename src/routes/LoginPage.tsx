@@ -1,13 +1,16 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { KeyRound, ShieldCheck, Sparkles, UserRound } from 'lucide-react'
+import { KeyRound, Satellite } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
 import { useRepositoryValue } from '@/data/RepositoryContext'
 import type { User } from '@/data/types'
+import { crewStyle } from '@/lib/crew'
+import { burstFrom } from '@/lib/fx'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { PhaseBadge } from '@/components/AppShell'
+import { PlanetAvatar } from '@/components/PlanetAvatar'
 
 const ROLE_LABEL: Record<User['role'], string> = {
   little: 'Little',
@@ -63,39 +66,44 @@ export function LoginPage() {
         <div className="flex justify-center">
           <PhaseBadge />
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">Who is this?</h1>
+        <h1 className="text-starlight text-4xl font-extrabold tracking-tight sm:text-5xl">Who’s flying today?</h1>
         <p className="text-sm text-muted-foreground">
-          {familyName}. Pick your name. Kids go straight in; parents share one login and enter the admin PIN.
+          {familyName} crew check-in. Tap your planet. Kids go straight in; parents enter the admin PIN.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        {kids.map((kid) => (
+      <div className="grid gap-4 sm:grid-cols-3">
+        {kids.map((kid, i) => (
           <button
             key={kid.id}
             type="button"
-            onClick={() => pick(kid)}
-            className="glass group rounded-2xl border p-5 text-left transition-[border-color,transform] hover:-translate-y-0.5 hover:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:hover:translate-y-0"
+            onClick={(e) => {
+              burstFrom(e.currentTarget.querySelector('[data-planet]'), { count: 18, distance: 110 })
+              pick(kid)
+            }}
+            className="glass group flex animate-rise-in flex-col items-center gap-3 rounded-3xl border p-6 text-center transition-[border-color,transform] duration-300 hover:-translate-y-1 hover:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:hover:translate-y-0"
+            style={{ animationDelay: `${i * 80}ms` }}
           >
-            <div className="flex items-center gap-3">
-              <span className="flex size-11 items-center justify-center rounded-full bg-sky-1 text-star ring-1 ring-accent/40">
-                {kid.role === 'teen' ? <Sparkles className="size-5" aria-hidden /> : <UserRound className="size-5" aria-hidden />}
+            <span data-planet className="py-2">
+              <PlanetAvatar userId={kid.id} name={kid.name} size={76} spinRing className="transition-transform duration-500 group-hover:scale-110" />
+            </span>
+            <span>
+              <span className="block text-2xl font-extrabold">{kid.name}</span>
+              <span className="block text-xs font-bold" style={{ color: crewStyle(kid.id).color }}>
+                {crewStyle(kid.id).callsign}
               </span>
-              <div>
-                <div className="text-lg font-bold">{kid.name}</div>
-                <div className="text-xs text-muted-foreground">{ROLE_LABEL[kid.role]}</div>
-              </div>
-            </div>
+              <span className="block text-[11px] text-muted-foreground">{ROLE_LABEL[kid.role]}</span>
+            </span>
           </button>
         ))}
       </div>
 
       {admin && (
-        <Card>
+        <Card className="mx-auto w-full max-w-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="size-5 text-primary" aria-hidden />
-              {admin.name}
+              <Satellite className="size-5 text-star" aria-hidden />
+              Ground Control
             </CardTitle>
             <CardDescription>{ROLE_LABEL.admin}. Enter the admin PIN to continue.</CardDescription>
           </CardHeader>

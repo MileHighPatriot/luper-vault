@@ -6,6 +6,8 @@ import { useHouseholdClock } from '@/data/useHouseholdClock'
 import { isBeforeGoLive } from '@/lib/time/calendar'
 import { formatDenver } from '@/lib/time/denver'
 import { cn } from '@/lib/utils'
+import { PlanetAvatar } from '@/components/PlanetAvatar'
+import { SkyBackdrop } from '@/components/SkyBackdrop'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
@@ -43,9 +45,14 @@ export function AppShell() {
   const { user, isAdmin, logout } = useAuth()
   const { now, isOverridden, forceLive } = useHouseholdClock()
   const familyName = useRepositoryValue((r) => r.getFamilySettings().familyName)
+  const kidSignedIn = Boolean(user && !isAdmin)
 
   return (
-    <div className={cn('sky flex min-h-screen flex-col', isAdmin ? 'sky-admin' : 'sky-kid')} data-surface={isAdmin ? 'admin' : 'kid'}>
+    <div
+      className={cn('sky flex min-h-screen flex-col', isAdmin ? 'sky-admin' : 'sky-kid', kidSignedIn && 'pb-28')}
+      data-surface={isAdmin ? 'admin' : 'kid'}
+    >
+      {!isAdmin && <SkyBackdrop />}
       <header className="border-b border-ivory/10 bg-sky-1/70 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="flex items-center gap-2.5 font-bold tracking-tight">
@@ -75,7 +82,8 @@ export function AppShell() {
             <PhaseBadge />
             {user && (
               <>
-                <span className="hidden text-sm text-muted-foreground sm:inline">
+                <span className="hidden items-center gap-2 text-sm text-muted-foreground sm:inline-flex">
+                  <PlanetAvatar userId={user.id} name={user.name} size={24} />
                   {user.name}
                   {isAdmin ? ' (admin)' : ''}
                 </span>

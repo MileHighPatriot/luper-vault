@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 /*
- * Constellation Crew skin (Phase 9). Skin only: behavior lives in the
- * repository and engine. Deep sky, warm stars, glass cards.
+ * Constellation Crew skin. Skin only: behavior lives in the repository and
+ * engine. Deep sky, warm stars, glass cards, and a little play.
  */
 @theme {
   --font-sans: 'Nunito', 'Avenir Next Rounded', 'Varela Round', ui-rounded, system-ui, -apple-system, 'Segoe UI',
@@ -10,16 +10,15 @@
 
   --color-background: #0b1020;
   --color-foreground: #f3efe4;
-  /* Glass card: sky-2 with alpha so the starfield shows through. */
-  --color-card: rgb(21 27 47 / 0.78);
+  --color-card: rgb(24 31 56 / 0.72);
   --color-card-foreground: #f3efe4;
   --color-primary: #5b8def;
   --color-primary-foreground: #0b1020;
-  --color-secondary: #1c2440;
+  --color-secondary: #1f2848;
   --color-secondary-foreground: #e6e1d3;
   --color-muted: #1a2138;
-  --color-muted-foreground: #a3a9bf;
-  --color-accent: #e8c56b;
+  --color-muted-foreground: #a9afc6;
+  --color-accent: #f0cd72;
   --color-accent-foreground: #241a05;
   --color-destructive: #e08a99;
   --color-destructive-foreground: #1b0d12;
@@ -29,20 +28,26 @@
   --color-deny-foreground: #fff5f7;
   --color-border: rgb(232 197 107 / 0.16);
   --color-input: rgb(243 239 228 / 0.16);
-  --color-ring: #e8c56b;
-  --color-star: #e8c56b;
+  --color-ring: #f0cd72;
+  --color-star: #f0cd72;
   --color-ivory: #f3efe4;
   --color-sky-1: #0b1020;
   --color-sky-2: #151b2f;
+  --color-nebula: #6b4fd8;
   --color-tier-1: #7fd8b4;
-  --color-tier-2: #5b8def;
+  --color-tier-2: #6fa0ff;
   --color-tier-3: #c48af5;
   --radius: 1rem;
 
   --animate-pop: pop 480ms cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
   --animate-star-tick: star-tick 700ms ease-out both;
   --animate-flare-in: flare-in 520ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-  --animate-twinkle: twinkle 9s ease-in-out infinite alternate;
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-wiggle: wiggle 600ms ease-in-out;
+  --animate-shake: shake 420ms ease-in-out;
+  --animate-pulse-star: pulse-star 1.8s ease-in-out infinite;
+  --animate-spin-slow: spin 18s linear infinite;
+  --animate-rise-in: rise-in 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 
   @keyframes pop {
     0% {
@@ -81,12 +86,91 @@
       opacity: 1;
     }
   }
-  @keyframes twinkle {
+  @keyframes rise-in {
     0% {
-      opacity: 0.55;
+      transform: translateY(14px);
+      opacity: 0;
     }
     100% {
+      transform: translateY(0);
       opacity: 1;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+  @keyframes wiggle {
+    0%,
+    100% {
+      transform: rotate(0);
+    }
+    25% {
+      transform: rotate(-8deg);
+    }
+    75% {
+      transform: rotate(8deg);
+    }
+  }
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20%,
+    60% {
+      transform: translateX(-6px);
+    }
+    40%,
+    80% {
+      transform: translateX(6px);
+    }
+  }
+  @keyframes pulse-star {
+    0%,
+    100% {
+      opacity: 0.45;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.35);
+    }
+  }
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.25;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  @keyframes drift {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    100% {
+      transform: translate3d(4%, -3%, 0) scale(1.08);
+    }
+  }
+  @keyframes shoot {
+    0%,
+    88% {
+      transform: translate3d(0, 0, 0) rotate(-24deg);
+      opacity: 0;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(-70vw, 32vh, 0) rotate(-24deg);
+      opacity: 0;
     }
   }
 }
@@ -119,72 +203,93 @@
 }
 
 @layer components {
-  /* Shared night sky: a slow vertical gradient from deep sky into sky-2. */
   .sky {
     background-image:
-      radial-gradient(ellipse 80% 50% at 50% -10%, rgb(91 141 239 / 0.18), transparent 60%),
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgb(91 141 239 / 0.2), transparent 60%),
       linear-gradient(180deg, var(--color-sky-1) 0%, var(--color-sky-2) 100%);
     background-attachment: fixed;
   }
 
-  /* Kid surface: the same sky plus a soft CSS starfield (no images, no JS). */
   .sky-kid {
     position: relative;
     isolation: isolate;
   }
-  .sky-kid::before,
-  .sky-kid::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background-repeat: repeat;
-  }
-  .sky-kid::before {
-    background-image:
-      radial-gradient(1.8px 1.8px at 12% 18%, rgb(243 239 228 / 0.95), transparent 60%),
-      radial-gradient(1.4px 1.4px at 33% 72%, rgb(243 239 228 / 0.8), transparent 60%),
-      radial-gradient(2.2px 2.2px at 58% 28%, rgb(232 197 107 / 0.95), transparent 60%),
-      radial-gradient(1.4px 1.4px at 74% 64%, rgb(243 239 228 / 0.7), transparent 60%),
-      radial-gradient(1.8px 1.8px at 88% 12%, rgb(243 239 228 / 0.9), transparent 60%),
-      radial-gradient(1.6px 1.6px at 21% 88%, rgb(232 197 107 / 0.8), transparent 60%),
-      radial-gradient(1.4px 1.4px at 46% 50%, rgb(243 239 228 / 0.65), transparent 60%),
-      radial-gradient(2px 2px at 92% 82%, rgb(243 239 228 / 0.85), transparent 60%),
-      radial-gradient(1.4px 1.4px at 5% 55%, rgb(243 239 228 / 0.6), transparent 60%),
-      radial-gradient(1.6px 1.6px at 65% 92%, rgb(243 239 228 / 0.7), transparent 60%);
-    background-size: 460px 460px;
-    animation: var(--animate-twinkle);
-  }
-  .sky-kid::after {
-    background-image:
-      radial-gradient(1px 1px at 8% 40%, rgb(243 239 228 / 0.5), transparent 60%),
-      radial-gradient(1px 1px at 40% 10%, rgb(243 239 228 / 0.45), transparent 60%),
-      radial-gradient(1px 1px at 66% 90%, rgb(232 197 107 / 0.55), transparent 60%),
-      radial-gradient(1px 1px at 82% 46%, rgb(243 239 228 / 0.4), transparent 60%);
-    background-size: 340px 340px;
-    opacity: 0.8;
-  }
 
-  /* Glass tile: used by Card. Admin surfaces drop the blur for scan speed. */
+  /* Glass tile with a faint gold → blue → violet rim. */
   .glass {
-    background-color: var(--color-card);
-    backdrop-filter: blur(14px) saturate(120%);
-    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    background:
+      linear-gradient(var(--color-card), var(--color-card)) padding-box,
+      linear-gradient(140deg, rgb(240 205 114 / 0.38), rgb(111 160 255 / 0.14) 45%, rgb(196 138 245 / 0.3)) border-box;
+    border-color: transparent;
+    backdrop-filter: blur(14px) saturate(125%);
+    -webkit-backdrop-filter: blur(14px) saturate(125%);
     box-shadow:
-      0 1px 0 rgb(243 239 228 / 0.06) inset,
-      0 12px 32px -16px rgb(0 0 0 / 0.7);
+      0 1px 0 rgb(243 239 228 / 0.07) inset,
+      0 16px 40px -20px rgb(0 0 0 / 0.8);
   }
   .sky-admin .glass {
+    background: var(--color-sky-2);
+    border-color: var(--color-border);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    background-color: var(--color-sky-2);
   }
 
-  /* Mission badge: Wins patches. */
+  .text-starlight {
+    background: linear-gradient(95deg, #fff7de 0%, #f0cd72 55%, #e8a95b 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
   .mission-badge {
     clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
-    background: linear-gradient(160deg, rgb(232 197 107 / 0.95), rgb(200 150 60 / 0.9));
+    background: linear-gradient(160deg, #fbe3a0, #f0cd72 45%, #c9913e);
     color: var(--color-accent-foreground);
+  }
+
+  /* Backdrop pieces (SkyBackdrop). */
+  .sky-star {
+    position: absolute;
+    border-radius: 9999px;
+    background: var(--color-ivory);
+    box-shadow: 0 0 6px rgb(243 239 228 / 0.8);
+    animation: twinkle var(--tw, 4s) ease-in-out infinite;
+    animation-delay: var(--delay, 0s);
+  }
+  .sky-nebula {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(60px);
+    opacity: 0.35;
+    animation: drift 26s ease-in-out infinite alternate;
+  }
+  .shooting-star {
+    position: absolute;
+    top: 12%;
+    right: -10%;
+    width: 140px;
+    height: 2px;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, rgb(243 239 228 / 0.95), transparent);
+    animation: shoot 14s linear infinite;
+  }
+
+  /* Particle layer for star bursts (src/lib/fx.ts). */
+  .fx-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 70;
+    overflow: hidden;
+  }
+  .fx-particle {
+    position: absolute;
+    will-change: transform, opacity;
+  }
+  .fx-star {
+    clip-path: polygon(50% 0%, 61% 38%, 100% 50%, 61% 62%, 50% 100%, 39% 62%, 0% 50%, 39% 38%);
+  }
+  .fx-dot {
+    border-radius: 9999px;
   }
 }

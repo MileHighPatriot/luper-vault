@@ -6,8 +6,10 @@ import { useHouseholdClock } from '@/data/useHouseholdClock'
 import type { PendingClaim } from '@/data/types'
 import { ClaimError } from '@/data/repository'
 import { denverDateKey, formatDenver } from '@/lib/time/denver'
+import { burstFrom } from '@/lib/fx'
 import { useSounds } from '@/lib/useSounds'
 import { MeterStrip } from '@/components/MeterStrip'
+import { PlanetAvatar } from '@/components/PlanetAvatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -55,7 +57,9 @@ function ClaimRow({ claim, kidName, actTitle, onError }: RowProps) {
   return (
     <li className="flex flex-col gap-3 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-3">
+          <PlanetAvatar userId={claim.userId} name={kidName} size={32} />
+          <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold">{kidName}</span>
             <span className="text-muted-foreground">·</span>
@@ -65,10 +69,18 @@ function ClaimRow({ claim, kidName, actTitle, onError }: RowProps) {
             </Badge>
           </div>
           <div className="text-xs text-muted-foreground">{formatDenver(new Date(claim.createdAt))}</div>
+          </div>
         </div>
         {!editing && (
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="approve" onClick={() => run(() => repo.approveClaim(claim.id), 'approve')}>
+            <Button
+              size="sm"
+              variant="approve"
+              onClick={(e) => {
+                burstFrom(e.currentTarget, { count: 10, distance: 60, colors: ['#7fd8b4', '#f0cd72', '#fff7de'] })
+                run(() => repo.approveClaim(claim.id), 'approve')
+              }}
+            >
               <Check className="size-4" aria-hidden />
               Approve
             </Button>

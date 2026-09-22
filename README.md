@@ -2,7 +2,7 @@
 
 A family shared-reward app. Kids and parents earn approved points that pour into three **family** vault meters; nobody has a personal score to compete over. (Constellation Crew skin comes later.)
 
-> **Phase 9 of polish — Constellation Crew skin.** Shared night sky (`#0B1020` → `#151B2F`), star gold `#E8C56B` and ivory text, glass cards, accent-blue CTAs, mint approve / quiet rose deny, Nunito. Kid Home draws the family meters as **orbit rings** over a soft CSS starfield; Wins are **mission badges**; the surprise flare glows gold. Admin is the same palette, flat ("Ground Control"), so the Inbox stays quick to scan. Light motion (meter ease, approve pop, surprise flare) respects `prefers-reduced-motion`; optional WebAudio cues (tap, approve chime, surprise swell) obey the Phase 8 **Kid sounds** mute. Skin only: no meter, calendar, reward, or surprise logic changed.
+> **Phase 9 of polish — Constellation Crew skin.** Shared night sky (`#0B1020` → `#151B2F`), star gold `#E8C56B` and ivory text, glass cards, accent-blue CTAs, mint approve / quiet rose deny, Nunito. Kid Home draws the family vaults as **constellations** that light up star by star over an animated sky; each kid has a crew planet and callsign; Earn is icon tiles with star bursts; Rewards are tappable capsules; Wins are **mission badges**; the surprise flare is an "incoming transmission" with confetti. Admin is the same palette, flat ("Ground Control"), so the Inbox stays quick to scan. Light motion (meter ease, approve pop, surprise flare) respects `prefers-reduced-motion`; optional WebAudio cues (tap, approve chime, surprise swell) obey the Phase 8 **Kid sounds** mute. Skin only: no meter, calendar, reward, or surprise logic changed.
 >
 > **Phase 8 of polish — Admin PIN, Settings, Audit.** The shared parent login needs a real, changeable **admin PIN** (default `2580`, first launch seeded from `VITE_ADMIN_PIN`). Kids still open with no PIN. Admin → **Settings** edits the PIN (with confirm), the Sky log verse, the family display name, and a kid-sound mute flag, and shows the go-live / America/Denver note read-only. Admin → **Audit** is a searchable log of every ledger write and surprise drop with kid, type (Path A / B / surprise), and date-range filters. View-only; void/undo is a later ticket.
 >
@@ -40,14 +40,20 @@ All tokens live in `src/index.css` (`@theme`), so the palette is one file.
 | `primary` | `#5B8DEF` | blue CTAs, month orbit |
 | `approve` | `#7FD8B4` | Approve buttons (mint) |
 | `deny` / `destructive` | `#C96B7A` / `#E08A99` | Deny buttons (quiet rose), error text |
-| `tier-1/2/3` | mint / blue / violet | orbit rings, fill bars, badge rings |
+| `tier-1/2/3` | mint / blue / violet | constellation lines, planet tabs, badge rings |
 
 - **Type:** Nunito (Google Fonts, `display=swap`) with a rounded system fallback stack.
-- **Surfaces:** `AppShell` sets `.sky` plus `.sky-kid` (fixed CSS starfield, two layers, slow twinkle) or `.sky-admin` (no blur, flat sky-2 cards). No images, no JS for the sky.
-- **Kid Home:** `OrbitRing` (SVG stroke-dasharray, 700 ms ease) replaces the bars; same `role="progressbar"` values and `data-testid`s. Sky log card has a gold wash.
-- **Kid Earn / Rewards / Wins:** Path A tile has a gold border and gold "I did it"; Path B tile is muted. Rewards keep one-card-per-tier; unlocked cards glow gold. Wins and surprise patches use a hex `.mission-badge`.
-- **Admin:** header reads "Ground Control"; Inbox has mint Approve / rose Deny and the meter strip pops the number after a write.
-- **Motion:** `animate-pop`, `animate-star-tick`, `animate-flare-in`, `animate-twinkle`; a global `prefers-reduced-motion` rule shortens every animation and transition to ~0.
+- **Surfaces:** `AppShell` sets `.sky` plus `.sky-kid` or `.sky-admin` (flat sky-2 cards, no blur). Kid screens and login render `SkyBackdrop`: drifting nebula blobs, ~70 twinkling stars from a seeded PRNG, two shooting stars, and a small star burst wherever a kid taps empty sky.
+- **Crew identity:** `src/lib/crew.ts` gives each person a planet color and callsign (Kameron = Comet Pilot, Alea = Nova Navigator, Christopher = Orion Commander). `PlanetAvatar` draws the ringed planet on login, the kid Home hero, the header, and Inbox rows. Skin only; edit the file to rename.
+- **Login:** "Who's flying today?" crew check-in with big planet cards; the parent card is Ground Control.
+- **Kid Home:** time-of-day greeting with callsign, a live mission status pill, and the three vaults as **constellations** (`ConstellationMeter`): Week 6 stars, Month 8, Quarter 10. Stars light in order with the family percent, lines draw between lit stars (700 ms ease), and the next star pulses. Each card names what it unlocks and taps through to that tier on Rewards. Percent shown to kids is rounded down, so 100% only appears when the vault is truly full. Mission clocks and a Sky log card with a big gold quote mark.
+- **Kid dock:** Home / Earn / Rewards / Wins as a floating bottom dock sized for tablet thumbs.
+- **Kid Earn:** Path A acts are icon tiles (`src/lib/actIcons.ts`, one lucide icon per act) with a big gold "I did it"; tapping bursts stars and the tile flips to a dashed "Waiting for Ground Control" state. Path B acts are muted "Parent stamps" chips.
+- **Kid Rewards:** planet tabs per tier, a large constellation for the selected vault, and reward **capsules**. Locked capsules shake and say how far along the family is; unlocked ones glow and burst on tap. Still one tier board per Week / Month / Quarter.
+- **Kid Wins:** a grid of hex mission badges that spin and sparkle on tap; the empty state is a dim constellation.
+- **Surprise flare:** "Incoming transmission" dialog with a floating gift, a confetti burst on open, and "Woohoo, got it!".
+- **Admin:** same palette, flat. Inbox rows lead with the kid's planet, mint Approve bursts, rose Deny, and the meter strip pops after a write.
+- **Motion:** keyframes in `src/index.css` (`pop`, `star-tick`, `flare-in`, `rise-in`, `float`, `wiggle`, `shake`, `pulse-star`, `twinkle`, `drift`, `shoot`) plus `src/lib/fx.ts` bursts via the Web Animations API. Under `prefers-reduced-motion` a global rule shortens every animation to ~0 and `burst()` does nothing.
 - **Sound:** `src/lib/sound.ts` synthesizes three cues with WebAudio (no files); `useSounds()` reads `getFamilySettings().muteKidSounds`, so Admin → Settings → Kid sounds silences kid taps, the surprise swell, and the admin approve chime. Browsers may hold audio until the first tap.
 
 ## Admin PIN, Settings, Audit (Phase 8 of polish)
@@ -246,10 +252,10 @@ Key exports: `splitPoints(points)`, `applyLedgerEntry(meters, points)`, `initial
 ```
 src/
   auth/          session + AuthProvider (login/logout, PIN check)
-  components/    AppShell (sky surfaces, family name, phase badge), AdminLayout + KidLayout tabs, MeterStrip, OrbitRing, AnnouncementBanner, SurpriseFlare, route guards, ui/ primitives
+  components/    AppShell (sky surfaces, family name, phase badge), AdminLayout + KidLayout tabs, MeterStrip, ConstellationMeter, PlanetAvatar, SkyBackdrop, ActIcon, AnnouncementBanner, SurpriseFlare, route guards, ui/ primitives
   data/          types, repository (claims, ledger, rewards, calendar gate, surprise drops, PIN, settings, audit), adapters, seed/, useHouseholdClock, tests
   engine/        meter math + tests
   index.css      Constellation Crew tokens, starfield, glass, mission badge, keyframes
-  lib/           pin.ts, sound.ts + useSounds.ts (WebAudio cues behind the mute flag), time/ (America/Denver helpers, calendar rules + countdowns, surprise earn-week keys, tests)
+  lib/           pin.ts, sound.ts + useSounds.ts (WebAudio cues behind the mute flag), fx.ts (star bursts), crew.ts, actIcons.ts, time/ (America/Denver helpers, calendar rules + countdowns, surprise earn-week keys, tests)
   routes/        LoginPage, ParentConsole, InboxPage, AddEarnPage, RewardsBuilderPage, SurprisePage, AuditPage, SettingsPage, ClockPage, DevToolsPage, AdminVerifyPage, kid/ (Home, Earn, Rewards, Wins)
 ```
