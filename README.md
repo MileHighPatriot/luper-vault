@@ -110,9 +110,11 @@ Open **Verify** (`/admin/verify`). It shows:
 
 ## Live URL (GitHub Pages)
 
-`.github/workflows/deploy-pages.yml` builds and deploys `main` to GitHub Pages on every push. The site is served at `https://<owner>.github.io/<repo>/`; the workflow sets `VITE_BASE_PATH=/<repo>/` so assets and the router (`BrowserRouter basename`) resolve under that prefix, and copies `index.html` to `404.html` so deep links like `/home` work on Pages.
+**https://milehighpatriot.github.io/luper-vault/**
 
-One-time setup after the repository exists: **Settings → Pages → Source: GitHub Actions** (the workflow also attempts to enable this itself). Then the deploy URL appears on the workflow run and under Settings → Pages. Data stays in each browser's `localStorage`; the Pages site holds no family data.
+`.github/workflows/deploy-pages.yml` builds and deploys `main` to GitHub Pages on every push. The workflow sets `VITE_BASE_PATH=/luper-vault/` so assets and the router (`BrowserRouter basename`) resolve under that prefix, and copies `index.html` to `404.html` so deep links like `/home` work on Pages.
+
+That address is also the repository website link, and it is the URL under **Settings → Pages** once a publish has been recorded. Data stays in each browser's `localStorage`; the Pages site holds no family data.
 
 ## Stack
 
