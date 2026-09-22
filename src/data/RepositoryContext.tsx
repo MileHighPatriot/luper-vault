@@ -47,7 +47,8 @@ export function useRepositoryValue<T>(select: (repo: Repository) => T): T {
   const repo = useRepository()
   const snapshot = useSyncExternalStore(
     (onChange) => repo.subscribe(onChange),
-    () => JSON.stringify(select(repo)),
+    // `JSON.stringify(undefined)` is `undefined`, which `JSON.parse` rejects; map it to null.
+    () => JSON.stringify(select(repo)) ?? 'null',
   )
   return useMemo(() => JSON.parse(snapshot) as T, [snapshot])
 }

@@ -79,7 +79,27 @@ export function migrateDatabase(db: Database, now: Date = new Date(), options: S
     version = 6
   }
   if (version !== SCHEMA_VERSION) return null
-  return { ...next, settings: { ...next.settings, schemaVersion: SCHEMA_VERSION } }
+  return repairDatabase({ ...next, settings: { ...next.settings, schemaVersion: SCHEMA_VERSION } }, now, options)
+}
+
+/**
+ * Fill any table or setting a current-version snapshot is missing (for
+ * example after a hot reload mid-edit). Never touches values that exist.
+ */
+export function repairDatabase(db: Database, now: Date = new Date(), options: SeedOptions = {}): Database {
+  const fresh = buildSeedDatabase(now, options)
+  return {
+    ...db,
+    users: db.users ?? fresh.users,
+    earnActs: db.earnActs ?? fresh.earnActs,
+    ledger: db.ledger ?? [],
+    pendingClaims: db.pendingClaims ?? [],
+    vaultMeters: db.vaultMeters ?? fresh.vaultMeters,
+    rewards: db.rewards ?? fresh.rewards,
+    wins: db.wins ?? [],
+    surpriseDrops: db.surpriseDrops ?? [],
+    settings: { ...fresh.settings, ...db.settings },
+  }
 }
 
 export { SEED_ACTS, EXPECTED_ACT_COUNTS, countActsByBand } from './acts'

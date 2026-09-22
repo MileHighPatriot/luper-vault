@@ -126,6 +126,20 @@ describe('family settings', () => {
   })
 })
 
+describe('snapshot repair', () => {
+  it('fills tables missing from a current-version snapshot instead of crashing', () => {
+    const seeded = buildSeedDatabase()
+    const { surpriseDrops: _d, wins: _w, ...partial } = seeded
+    const adapter = new MemoryAdapter()
+    adapter.save(partial as unknown as Database)
+    const repo = new Repository(adapter)
+    expect(repo.adminListSurprises()).toEqual([])
+    expect(repo.listWins()).toEqual([])
+    expect(repo.getSettings().schemaVersion).toBe(SCHEMA_VERSION)
+    expect(repo.adminListLedger()).toEqual([])
+  })
+})
+
 describe('audit log', () => {
   function seeded() {
     const repo = createMemoryRepository()

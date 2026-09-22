@@ -26,7 +26,7 @@ import { hashPin, isValidPinFormat, PIN_MAX_LENGTH, PIN_MIN_LENGTH, pinMatches }
 import { earnWindow, type EarnWindow } from '@/lib/time/calendar'
 import { denverDateKey } from '@/lib/time/denver'
 import { calendarMonthKey, earnWeekKey } from '@/lib/time/surpriseWeek'
-import { buildSeedDatabase, migrateDatabase, SCHEMA_VERSION, TIER_PERIOD } from './seed'
+import { buildSeedDatabase, migrateDatabase, repairDatabase, SCHEMA_VERSION, TIER_PERIOD } from './seed'
 
 /**
  * Persistence boundary. Anything that can load/save a whole `Database`
@@ -228,7 +228,7 @@ export class Repository {
   private loadOrSeed(): Database {
     const existing = this.adapter.load()
     if (existing && existing.settings?.schemaVersion === SCHEMA_VERSION) {
-      return existing
+      return repairDatabase(existing, new Date(), { adminPin: this.defaultAdminPin })
     }
     if (existing) {
       const migrated = migrateDatabase(existing, new Date(), { adminPin: this.defaultAdminPin })
