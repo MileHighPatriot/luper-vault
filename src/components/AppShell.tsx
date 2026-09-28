@@ -1,7 +1,7 @@
 import { Link, Outlet } from 'react-router-dom'
-import { Clock, LogOut, Rocket, Sparkles } from 'lucide-react'
+import { Clock, LogOut, Rocket, Sparkles, WifiOff } from 'lucide-react'
 import { useAuth } from '@/auth/AuthContext'
-import { useRepositoryValue } from '@/data/RepositoryContext'
+import { useRepositoryValue, useSyncStatus } from '@/data/RepositoryContext'
 import { useHouseholdClock } from '@/data/useHouseholdClock'
 import { isBeforeGoLive } from '@/lib/time/calendar'
 import { formatDenver } from '@/lib/time/denver'
@@ -45,6 +45,7 @@ export function AppShell() {
   const { user, isAdmin, logout } = useAuth()
   const { now, isOverridden, forceLive } = useHouseholdClock()
   const familyName = useRepositoryValue((r) => r.getFamilySettings().familyName)
+  const syncStatus = useSyncStatus()
   const kidSignedIn = Boolean(user && !isAdmin)
 
   return (
@@ -78,6 +79,17 @@ export function AppShell() {
                 <Clock className="size-3.5" aria-hidden />
                 <span className="hidden sm:inline">Preview:</span> {formatDenver(now)}
               </Link>
+            )}
+            {syncStatus === 'offline' && (
+              <span
+                role="status"
+                className="inline-flex items-center gap-1 rounded-full bg-destructive/20 px-2.5 py-0.5 text-xs font-semibold text-foreground"
+                title="Can't reach the family ledger. Changes on this device will save when the connection is back."
+                data-testid="sync-offline-chip"
+              >
+                <WifiOff className="size-3.5" aria-hidden />
+                Offline
+              </span>
             )}
             <PhaseBadge />
             {user && (

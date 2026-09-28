@@ -203,6 +203,17 @@ That address is also the repository website link, and it is the URL under **Sett
 - `@date-fns/tz` for DST-safe America/Denver wall-clock math
 - Vitest
 
+## Family sync (every device shares one ledger)
+
+Each family member uses their own device, so the live site keeps the ledger on **Supabase** instead of in one browser.
+
+- **Server:** `supabase/ledger.sql` creates one closed table (`ledger_family`: family-code hash, `version`, `snapshot` jsonb) and two functions, `ledger_pull(code, since)` and `ledger_push(code, expected, snapshot)`. The public API can only call those functions, and only with the family code, which is stored as a sha256 hash.
+- **Client:** `src/data/remoteLedger.ts` calls the functions over PostgREST (no SDK). `src/data/syncedLedger.ts` wraps the normal `Repository`: every call that writes is recorded and the new snapshot is pushed with compare-and-swap on `version`. If another device wrote first, the device adopts the newer snapshot and replays its recorded calls on top, so a kid's claim and a parent's approval made at the same moment both land. A replay that no longer applies (the claim was already approved on another phone) is dropped. Devices poll every 3 s while visible and immediately on focus.
+- **Family code:** `src/components/FamilyConnect.tsx` asks for it once per device (saved as `luper-ledger:family-code`), then loads the ledger. Wrong code → asked again; no connection → "Try again" screen. An **Offline** chip shows in the header while writes are waiting to reach the server.
+- **First device:** if the server has no snapshot yet, the first device to connect uploads its existing local data (or a fresh seed). Connect the device where rewards and the PIN were already set up first.
+- **Family-wide now:** settings, the admin PIN, FORCE_LIVE, the clock preview, and Dev tools resets apply to every device. Login sessions stay per device.
+- **Config:** `VITE_SUPABASE_URL` and `VITE_SUPABASE_KEY` (publishable/anon key). The Pages workflow reads them from repository variables `SUPABASE_URL` / `SUPABASE_KEY`. Unset means local-only, which is how tests and plain `npm run dev` run.
+
 ## Persistence: repository layer over localStorage
 
 Phase 1 uses a **repository layer over `localStorage`** rather than a server + SQLite. The whole database is one JSON snapshot under the key `luper-ledger:db`.

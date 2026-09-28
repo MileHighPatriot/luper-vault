@@ -29,6 +29,9 @@ jobs:
         run: npm run build
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          # Shared family ledger. Public by design; the family code guards the data.
+          VITE_SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          VITE_SUPABASE_KEY: ${{ vars.SUPABASE_KEY }}
       - name: SPA fallback for deep links
         run: cp dist/index.html dist/404.html
       - uses: actions/configure-pages@v5

@@ -249,6 +249,26 @@ export class Repository {
     for (const listener of this.listeners) listener()
   }
 
+  /** SYNC ONLY. The whole snapshot, for pushing to the family server. */
+  exportSnapshot(): Database {
+    return this.db
+  }
+
+  /**
+   * SYNC ONLY. Adopt a snapshot another device wrote. Notifies listeners but
+   * does not save; the caller already has it on the server.
+   */
+  adoptSnapshot(next: Database): void {
+    const options = { adminPin: this.defaultAdminPin }
+    const adopted =
+      next.settings?.schemaVersion === SCHEMA_VERSION
+        ? repairDatabase(next, new Date(), options)
+        : migrateDatabase(next, new Date(), options)
+    if (!adopted) return
+    this.db = adopted
+    for (const listener of this.listeners) listener()
+  }
+
   /** Subscribe to any write. Returns an unsubscribe function. */
   subscribe(listener: Listener): () => void {
     this.listeners.add(listener)
