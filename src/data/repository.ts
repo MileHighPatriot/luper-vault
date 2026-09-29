@@ -418,7 +418,7 @@ export class Repository {
   /**
    * KID-FACING. The "I did it" button. Same as `queueClaim` but enforces the
    * household calendar: closed before go-live (unless FORCE_LIVE), on Sundays,
-   * and after the 8 PM Denver cutoff. Admin Dev tools use `queueClaim` directly.
+   * and after the Saturday 8 PM Denver cutoff. Admin Dev tools use `queueClaim` directly.
    */
   claimForKid(input: QueueClaimInput): PendingClaim {
     const window = this.getEarnWindow()

@@ -5,7 +5,7 @@ import { useRepositoryValue } from '@/data/RepositoryContext'
 import { useHouseholdClock } from '@/data/useHouseholdClock'
 import type { KidReward, Tier, VaultMeter } from '@/data/types'
 import { isMeterFull, meterPercent, meterPoints } from '@/engine/meters'
-import { CUTOFF_LABEL, countdowns, formatRemaining, type Countdown } from '@/lib/time/calendar'
+import { CUTOFF_LABEL, EARN_SCHEDULE_LABEL, countdowns, formatRemaining, type Countdown } from '@/lib/time/calendar'
 import { formatDenver, toDenverParts } from '@/lib/time/denver'
 import { burstFrom } from '@/lib/fx'
 import { crewStyle, greetingFor } from '@/lib/crew'
@@ -93,8 +93,10 @@ function MissionStatus({
   reason,
   message,
   reopensAt,
+  closesTonight,
 }: {
   open: boolean
+  closesTonight?: boolean
   reason?: string
   message: string
   reopensAt?: Date
@@ -106,7 +108,7 @@ function MissionStatus({
           <span className="absolute inline-flex size-full animate-ping rounded-full bg-approve opacity-60" />
           <span className="relative inline-flex size-2.5 rounded-full bg-approve" />
         </span>
-        Mission open until {CUTOFF_LABEL}
+        {closesTonight ? `Mission open until ${CUTOFF_LABEL}` : 'Mission open'}
       </span>
     )
   }
@@ -164,7 +166,7 @@ export function KidHomePage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end">
-          <MissionStatus open={earn.open} reason={earn.reason} message={earn.message} reopensAt={earn.reopensAt} />
+          <MissionStatus open={earn.open} reason={earn.reason} message={earn.message} reopensAt={earn.reopensAt} closesTonight={earn.closesTonight} />
           {movedRecently && lastMovedAt && (
             <span
               role="status"
@@ -271,7 +273,7 @@ export function KidHomePage() {
           })}
         </div>
         <p className="text-xs text-muted-foreground">
-          Earn Monday–Saturday until {CUTOFF_LABEL} Denver. Sunday is reward day.
+          Earn {EARN_SCHEDULE_LABEL} Denver. Sunday is reward day.
         </p>
       </section>
 

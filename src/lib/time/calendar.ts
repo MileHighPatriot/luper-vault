@@ -8,8 +8,8 @@ import { HOUSEHOLD_TIME_ZONE, toDenverParts } from './denver'
  * Product lock:
  * - Go-live / first counted earn week: Monday 2026-09-28. Chosen as the first
  *   Monday that still preserves a full October for the month tier.
- * - Earn window: Monday–Saturday until ~8:00 PM Denver. Path A claims after
- *   the cutoff are rejected.
+ * - Earn window: Monday–Friday all day; Saturday until 8:00 PM Denver. Path A
+ *   claims after the Saturday cutoff are rejected.
  * - Sunday: celebrate / reward day. No Path A claims.
  * - Month tier (T2): calendar months. Sep 28–30 earns still feed every vault
  *   through the 50/30/20 split, but the month tier officially opens Oct 1 and
@@ -23,6 +23,8 @@ export const QUARTER_TIER_OPENS_DATE_KEY = '2026-10-01'
 export const CUTOFF_HOUR = 20
 export const CUTOFF_MINUTE = 0
 export const CUTOFF_LABEL = '8:00 PM'
+/** Short schedule copy for the UI. */
+export const EARN_SCHEDULE_LABEL = `Mon–Fri all day · Sat until ${CUTOFF_LABEL}`
 
 /** Build an instant from Denver wall-clock parts. Month is 1-12. */
 export function denverInstant(year: number, month: number, day: number, hour = 0, minute = 0): Date {
@@ -54,8 +56,14 @@ export function isEarnDay(now: Date): boolean {
   return !isCelebrateSunday(now)
 }
 
-/** True from 8:00 PM Denver until midnight, on any day. */
+/** Saturday is the only day with an evening cutoff. */
+export function isCutoffDay(now: Date): boolean {
+  return toDenverParts(now).weekday === 6
+}
+
+/** True from 8:00 PM Saturday Denver until midnight. Other days never cut off. */
 export function isPastCutoff(now: Date): boolean {
+  if (!isCutoffDay(now)) return false
   const { hour, minute } = toDenverParts(now)
   return hour > CUTOFF_HOUR || (hour === CUTOFF_HOUR && minute >= CUTOFF_MINUTE)
 }
@@ -69,6 +77,8 @@ export interface EarnWindow {
   message: string
   /** When the window next opens, if closed. */
   reopensAt?: Date
+  /** Open now but closes at the cutoff tonight (Saturday). */
+  closesTonight?: boolean
 }
 
 export interface EarnWindowOptions {
@@ -108,17 +118,17 @@ export function earnWindow(now: Date, opts: EarnWindowOptions = {}): EarnWindow 
     }
   }
   if (isPastCutoff(now)) {
-    const saturday = toDenverParts(now).weekday === 6
     return {
       open: false,
       reason: 'after-cutoff',
-      message: saturday
-        ? `Claims closed at ${CUTOFF_LABEL}. Tomorrow is reward day; the vault reopens Monday.`
-        : `Claims closed for tonight at ${CUTOFF_LABEL}. Back tomorrow morning.`,
-      reopensAt: saturday ? nextMondayStart(now) : nextDenverMidnight(now),
+      message: `Claims closed at ${CUTOFF_LABEL}. Tomorrow is reward day; the vault reopens Monday.`,
+      reopensAt: nextMondayStart(now),
     }
   }
-  return { open: true, message: `Claims are open until ${CUTOFF_LABEL} tonight.` }
+  if (isCutoffDay(now)) {
+    return { open: true, closesTonight: true, message: `Claims are open until ${CUTOFF_LABEL} tonight.` }
+  }
+  return { open: true, message: 'Claims are open all day.' }
 }
 
 // --- seasons and period boundaries ------------------------------------------

@@ -117,7 +117,7 @@ export function AppShell() {
 
       <footer className="border-t border-ivory/10">
         <div className="mx-auto w-full max-w-4xl px-4 py-3 text-xs text-muted-foreground">
-          Phase 9 of polish — {SKIN_NAME} skin. Earn Mon–Sat until 8:00 PM Denver; Sunday is reward day. Go-live Mon Sep
+          Phase 9 of polish — {SKIN_NAME} skin. Earn Mon–Fri all day, Sat until 8:00 PM Denver; Sunday is reward day. Go-live Mon Sep
           28, 2026; month and quarter tiers open Oct 1.
         </div>
       </footer>

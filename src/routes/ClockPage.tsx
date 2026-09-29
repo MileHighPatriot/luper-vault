@@ -82,7 +82,7 @@ export function ClockPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Clock</h1>
         <p className="text-sm text-muted-foreground">
           Every gate runs on {HOUSEHOLD_TIME_ZONE}. Go-live {GO_LIVE_DATE_KEY}; month and quarter tiers open{' '}
-          {MONTH_TIER_OPENS_DATE_KEY}. Earn Monday–Saturday until {CUTOFF_LABEL}; Sunday is reward day.
+          {MONTH_TIER_OPENS_DATE_KEY}. Earn Monday–Friday all day and Saturday until {CUTOFF_LABEL}; Sunday is reward day.
         </p>
       </div>
 
@@ -105,10 +105,10 @@ export function ClockPage() {
             <StatusRow
               label="Earn window"
               ok={earn.open}
-              text={earn.open ? `Open until ${CUTOFF_LABEL}` : `Closed · ${earn.reason?.replace(/-/g, ' ')}`}
+              text={earn.open ? (earn.closesTonight ? `Open until ${CUTOFF_LABEL}` : 'Open all day') : `Closed · ${earn.reason?.replace(/-/g, ' ')}`}
             />
             <StatusRow label="Day" ok={!isCelebrateSunday(now)} text={isCelebrateSunday(now) ? 'Sunday · reward day' : 'Earn day'} />
-            <StatusRow label="Cutoff" ok={!isPastCutoff(now)} text={isPastCutoff(now) ? `Past ${CUTOFF_LABEL}` : `Before ${CUTOFF_LABEL}`} />
+            <StatusRow label="Cutoff" ok={!isPastCutoff(now)} text={isPastCutoff(now) ? `Past Sat ${CUTOFF_LABEL}` : `Sat ${CUTOFF_LABEL} only`} />
             <StatusRow
               label="Month tier (T2)"
               ok={isMonthTierOpen(now)}
@@ -125,7 +125,7 @@ export function ClockPage() {
               Parent testing
             </CardTitle>
             <CardDescription>
-              FORCE_LIVE lets kids claim before Sep 28. It never bypasses Sunday or the {CUTOFF_LABEL} cutoff. Also
+              FORCE_LIVE lets kids claim before Sep 28. It never bypasses Sunday or the Saturday {CUTOFF_LABEL} cutoff. Also
               settable at build time with VITE_FORCE_LIVE=true.
             </CardDescription>
           </CardHeader>

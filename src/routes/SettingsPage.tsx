@@ -3,7 +3,7 @@ import { BookOpenText, CalendarClock, KeyRound, Users, Volume2, VolumeX } from '
 import { useRepository, useRepositoryValue } from '@/data/RepositoryContext'
 import { PinError, SettingsError } from '@/data/repository'
 import { PIN_MAX_LENGTH, PIN_MIN_LENGTH } from '@/lib/pin'
-import { CUTOFF_LABEL, GO_LIVE_DATE_KEY, MONTH_TIER_OPENS_DATE_KEY } from '@/lib/time/calendar'
+import { EARN_SCHEDULE_LABEL, GO_LIVE_DATE_KEY, MONTH_TIER_OPENS_DATE_KEY } from '@/lib/time/calendar'
 import { HOUSEHOLD_TIME_ZONE } from '@/lib/time/denver'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -167,7 +167,7 @@ export function SettingsPage() {
                 <dt className="text-muted-foreground">Go-live</dt>
                 <dd className="font-medium">Monday {GO_LIVE_DATE_KEY}</dd>
                 <dt className="text-muted-foreground">Earn window</dt>
-                <dd className="font-medium">Mon–Sat until {CUTOFF_LABEL}</dd>
+                <dd className="font-medium">{EARN_SCHEDULE_LABEL}</dd>
                 <dt className="text-muted-foreground">Month / quarter tiers</dt>
                 <dd className="font-medium">Open {MONTH_TIER_OPENS_DATE_KEY}</dd>
               </dl>

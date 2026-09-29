@@ -181,7 +181,7 @@ export interface Settings {
   muteKidSounds: boolean
   /**
    * Parent testing switch: treat the app as live before go-live (2026-09-28).
-   * Never bypasses Sunday or the 8 PM cutoff. Also settable via VITE_FORCE_LIVE.
+   * Never bypasses Sunday or the Saturday 8 PM cutoff. Also settable via VITE_FORCE_LIVE.
    */
   forceLive: boolean
   /**

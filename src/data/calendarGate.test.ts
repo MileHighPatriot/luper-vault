@@ -62,13 +62,13 @@ describe('claimForKid respects the household calendar', () => {
     expect(() => repo.claimForKid({ userId: 'alea', actId: 'little.hamper' })).toThrow(/Reward day/)
   })
 
-  it('Monday 8:01 PM Denver: blocked; Tuesday 3 PM: allowed', () => {
+  it('Saturday 8:01 PM Denver: blocked; Monday 8:01 PM: allowed', () => {
     const repo = createMemoryRepository()
-    repo.adminSetClockOverride(iso(denverInstant(2026, 9, 28, 20, 1)))
+    repo.adminSetClockOverride(iso(denverInstant(2026, 10, 3, 20, 1)))
     expect(repo.getEarnWindow().reason).toBe('after-cutoff')
     expect(() => repo.claimForKid({ userId: 'christopher', actId: 'teen.laundry' })).toThrow(/8:00 PM/)
 
-    repo.adminSetClockOverride(iso(denverInstant(2026, 9, 29, 15)))
+    repo.adminSetClockOverride(iso(denverInstant(2026, 9, 28, 20, 1)))
     expect(repo.getEarnWindow().open).toBe(true)
     expect(() => repo.claimForKid({ userId: 'christopher', actId: 'teen.laundry' })).not.toThrow()
   })

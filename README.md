@@ -10,7 +10,7 @@ A family shared-reward app. Kids and parents earn approved points that pour into
 >
 > **Phase 6 of 6 — Calendar gate. The Monday-ready core is complete.**
 >
-> Phases 1–5 shipped the skeleton, seed data, auth, meter math, the parent Inbox, parent Add earn, kid Home + Earn, Rewards, and Wins. Phase 6 adds the **household calendar**: go-live on **Monday 2026-09-28**, an earn window of **Monday–Saturday until 8:00 PM America/Denver**, **Sunday as reward day** (no Path A claims), and the **month / quarter tiers opening Oct 1, 2026**. Kids' "I did it" is blocked outside the window with a clear message, Home and Rewards switch to celebrate copy on Sundays, countdown chips run on the real Denver calendar, and admins get a Clock panel with FORCE_LIVE and a dev clock preview. Later polish (constellation skin, sounds, crowns, real auth) is tracked separately.
+> Phases 1–5 shipped the skeleton, seed data, auth, meter math, the parent Inbox, parent Add earn, kid Home + Earn, Rewards, and Wins. Phase 6 adds the **household calendar**: go-live on **Monday 2026-09-28**, an earn window of **Monday–Friday all day and Saturday until 8:00 PM America/Denver**, **Sunday as reward day** (no Path A claims), and the **month / quarter tiers opening Oct 1, 2026**. Kids' "I did it" is blocked outside the window with a clear message, Home and Rewards switch to celebrate copy on Sundays, countdown chips run on the real Denver calendar, and admins get a Clock panel with FORCE_LIVE and a dev clock preview. Later polish (constellation skin, sounds, crowns, real auth) is tracked separately.
 
 ## Phase map
 
@@ -21,7 +21,7 @@ A family shared-reward app. Kids and parents earn approved points that pour into
 | 3 | Parent Add earn (Path B earns, conduct + parent demerits, direct ledger write) | done |
 | 4 | Kid Home + Earn (family meters, verse card, "I did it" claims, Path B read-only) | done |
 | 5 | Rewards builder, kid Rewards (locked / unlocked per tier), Wins reel, one-time announce banner | done |
-| 6 | Calendar gate: go-live, Mon–Sat 8 PM Denver cutoff, Sunday reward day, Oct 1 tier opening, Clock panel | done |
+| 6 | Calendar gate: go-live, Saturday 8 PM Denver cutoff, Sunday reward day, Oct 1 tier opening, Clock panel | done |
 | 7 | Surprise drops: parent send, week/month caps, one-time Home flare, Wins patch | done |
 | 8 | Admin PIN, light Settings, searchable Audit log | done |
 | 9 | Constellation Crew skin: palette, type, glass, orbits, badges, motion, sound | **this repo** |
@@ -72,7 +72,7 @@ The digest is `src/lib/pin.ts` (FNV-1a over a salted PIN). It keeps the PIN out 
 - **Family display name** — shown under the app title in the header and on the login screen.
 - **Sky log verse for the week** — the verse card on kid Home reads it live.
 - **Kid sounds** — a mute switch saved now; the sounds themselves arrive with the Phase 9 skin.
-- **Household clock** — read-only: America/Denver, go-live Monday 2026-09-28, Mon–Sat until 8:00 PM, tiers open 2026-10-01.
+- **Household clock** — read-only: America/Denver, go-live Monday 2026-09-28, Mon–Fri all day, Sat until 8:00 PM, tiers open 2026-10-01.
 - **Admin PIN** — change with current PIN + confirm (see above).
 
 Kids read settings only through `getFamilySettings()` (family name, verse, mute flag). The PIN digest and dev switches never reach kid code.
@@ -92,7 +92,7 @@ Admin → **Surprise** sends a treat to one kid: title, optional note, optional 
 | Meters / Path A / Path B | Untouched. No ledger row. |
 | Week cap | 1 non-canceled surprise per kid per earn week. The week is Monday 00:00 Denver through the following Sunday. |
 | Month cap | 3 non-canceled surprises per kid per Denver calendar month. |
-| When | Any day, including Sunday, before go-live, and after the 8 PM cutoff. |
+| When | Any day, including Sunday, before go-live, and after the Saturday 8 PM cutoff. |
 | Cancel | Only while status is still `pending`. A seen surprise stays. |
 
 ## Calendar rules (locked)
@@ -102,8 +102,8 @@ All clock math runs on `America/Denver`, DST-safe via [`@date-fns/tz`](https://g
 | Rule | Value |
 |------|-------|
 | Family go-live / first counted earn week | **Monday 2026-09-28**, 00:00 Denver. Chosen as the first Monday that keeps a full October for the month tier. |
-| Earn window | **Monday–Saturday**, until **8:00 PM Denver** (inclusive: 8:00:00 PM is closed). |
-| After cutoff | New Path A claims are rejected with "Claims closed for tonight at 8:00 PM. Back tomorrow morning." (Saturday: "...the vault reopens Monday."). |
+| Earn window | **Monday–Friday** all day. **Saturday** until **8:00 PM Denver** (inclusive: 8:00:00 PM is closed). Changed 2026-09-28 from a nightly Mon–Sat cutoff. |
+| After cutoff | Saturday only. New Path A claims are rejected with "Claims closed at 8:00 PM. Tomorrow is reward day; the vault reopens Monday." |
 | Sunday | Reward / celebrate day. No Path A claims. Kid Home and Rewards show "Reward day — no claims today" and point to Rewards / Wins. |
 | Month tier (T2) | Calendar months. **October 1–31, 2026 is the first full month.** Sep 28–30 earns still flow into every vault through the 50/30/20 split, but the month tier officially **opens Oct 1**. |
 | Quarter tier (T3) | Starts **Oct 1, 2026** as **"Fall 2026"** (Oct–Dec = Fall, Jan–Mar = Winter, Apr–Jun = Spring, Jul–Sep = Summer). |
@@ -155,7 +155,7 @@ Logging in as Kameron, Alea, or Christopher lands on `/home` with tabs Home · E
 - **Rewards** (`/rewards`) — Week · Month · Quarter tabs (Sunday adds a reward-day banner). Each active reward for that tier shows as **Unlocked** when the family meter has reached its fill (T1 120, T2 280, T3 560) and **Locked** otherwise, with the meter's fill bar and percent. No prices, no personal costs, no point math.
 - **Wins** (`/wins`) — unlock and announce events, newest first (title, period, Denver time). Empty state: "No wins yet — fill the vault on Home". A dashed "Top earner crowns — Phase later" strip is a placeholder only; no crown scoring exists.
 - **Earn** (`/earn`) — the kid's band catalog **by name only**, no point values. Little kids see the little list; Christopher sees the teen list. Positive conduct stamps (Caught being good, Outstanding day) appear as read-only Path B rows. Demerits never appear.
-  - Path A rows have an **"I did it"** button that creates a pending claim (the same `PendingClaim` the parent Inbox consumes). The row then shows **"Waiting for Ground Control"** until a parent approves or denies it. A kid cannot queue the same act twice while one is pending. Outside the earn window (before go-live, Sunday, or after 8 PM Denver) the buttons are replaced by "Closed" and a notice explains why and when claims reopen.
+  - Path A rows have an **"I did it"** button that creates a pending claim (the same `PendingClaim` the parent Inbox consumes). The row then shows **"Waiting for Ground Control"** until a parent approves or denies it. A kid cannot queue the same act twice while one is pending. Outside the earn window (before go-live, Sunday, or after 8 PM Saturday Denver) the buttons are replaced by "Closed" and a notice explains why and when claims reopen.
   - Path B rows show **"Parent adds this"** with no button.
 
 Kid-facing data comes only from `listEarnActsForKid`, `listKidPendingClaims`, `getMeters`, `getVaultLastMovedAt`, `getEarnWindow`, `listRewardsForKids`, `listWins`, `listPendingSurprisesForKid`, `listSeenSurprisesForKid`, and `getFamilySettings`, none of which carry point values, per-person totals, or the PIN digest. Kids hitting any `/admin/*` URL are redirected home.

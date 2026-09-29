@@ -24,6 +24,8 @@ const MON_SEP_28_759PM = denverInstant(2026, 9, 28, 19, 59)
 const MON_SEP_28_800PM = denverInstant(2026, 9, 28, 20, 0)
 const MON_SEP_28_801PM = denverInstant(2026, 9, 28, 20, 1)
 const TUE_SEP_29_3PM = denverInstant(2026, 9, 29, 15)
+const SAT_OCT_3_759PM = denverInstant(2026, 10, 3, 19, 59)
+const SAT_OCT_3_800PM = denverInstant(2026, 10, 3, 20, 0)
 const SAT_OCT_3_830PM = denverInstant(2026, 10, 3, 20, 30)
 const SUN_OCT_4_10AM = denverInstant(2026, 10, 4, 10)
 
@@ -57,18 +59,23 @@ describe('gates', () => {
     expect(isCelebrateSunday(new Date('2026-10-05T05:00:00Z'))).toBe(true)
   })
 
-  it('cutoff is 8:00 PM Denver inclusive', () => {
-    expect(isPastCutoff(MON_SEP_28_759PM)).toBe(false)
-    expect(isPastCutoff(MON_SEP_28_800PM)).toBe(true)
-    expect(isPastCutoff(MON_SEP_28_801PM)).toBe(true)
-    expect(isPastCutoff(denverInstant(2026, 9, 28, 23, 59))).toBe(true)
-    expect(isPastCutoff(denverInstant(2026, 9, 29, 0, 0))).toBe(false)
+  it('cutoff is Saturday 8:00 PM Denver inclusive', () => {
+    expect(isPastCutoff(SAT_OCT_3_759PM)).toBe(false)
+    expect(isPastCutoff(SAT_OCT_3_800PM)).toBe(true)
+    expect(isPastCutoff(SAT_OCT_3_830PM)).toBe(true)
+    expect(isPastCutoff(denverInstant(2026, 10, 3, 23, 59))).toBe(true)
+  })
+
+  it('weekdays have no cutoff', () => {
+    expect(isPastCutoff(MON_SEP_28_800PM)).toBe(false)
+    expect(isPastCutoff(MON_SEP_28_801PM)).toBe(false)
+    expect(isPastCutoff(denverInstant(2026, 10, 2, 23, 59))).toBe(false) // Friday
   })
 
   it('cutoff survives the DST change (Nov 1 2026)', () => {
-    // 8:00 PM MST on Mon Nov 2 is 03:00Z Nov 3.
-    expect(isPastCutoff(new Date('2026-11-03T02:59:00Z'))).toBe(false)
-    expect(isPastCutoff(new Date('2026-11-03T03:00:00Z'))).toBe(true)
+    // 8:00 PM MST on Sat Nov 7 is 03:00Z Nov 8.
+    expect(isPastCutoff(new Date('2026-11-08T02:59:00Z'))).toBe(false)
+    expect(isPastCutoff(new Date('2026-11-08T03:00:00Z'))).toBe(true)
     // 8:00 PM MDT on Sat Oct 31 is 02:00Z Nov 1.
     expect(isPastCutoff(new Date('2026-11-01T01:59:00Z'))).toBe(false)
     expect(isPastCutoff(new Date('2026-11-01T02:00:00Z'))).toBe(true)
@@ -88,7 +95,7 @@ describe('earnWindow', () => {
 
   it('forceLive never bypasses Sunday or the cutoff', () => {
     expect(earnWindow(denverInstant(2026, 9, 27, 10), { forceLive: true }).reason).toBe('sunday')
-    expect(earnWindow(denverInstant(2026, 9, 22, 20, 5), { forceLive: true }).reason).toBe('after-cutoff')
+    expect(earnWindow(denverInstant(2026, 9, 26, 20, 5), { forceLive: true }).reason).toBe('after-cutoff')
   })
 
   it('Sunday is celebrate day', () => {
@@ -98,14 +105,17 @@ describe('earnWindow', () => {
     expect(w.reopensAt?.toISOString()).toBe(denverInstant(2026, 10, 5).toISOString())
   })
 
-  it('Monday 8:01 PM is blocked; Tuesday 3 PM is open', () => {
-    const late = earnWindow(MON_SEP_28_801PM)
-    expect(late).toMatchObject({ open: false, reason: 'after-cutoff' })
-    expect(late.message).toMatch(/Back tomorrow/)
-    expect(late.reopensAt?.toISOString()).toBe(denverInstant(2026, 9, 29).toISOString())
-
-    expect(earnWindow(TUE_SEP_29_3PM)).toMatchObject({ open: true })
+  it('weekday nights stay open all day', () => {
+    expect(earnWindow(MON_SEP_28_801PM)).toMatchObject({ open: true, message: 'Claims are open all day.' })
+    expect(earnWindow(MON_SEP_28_801PM).closesTonight).toBeUndefined()
+    expect(earnWindow(TUE_SEP_29_3PM).open).toBe(true)
     expect(earnWindow(MON_SEP_28_759PM).open).toBe(true)
+    expect(earnWindow(denverInstant(2026, 10, 2, 23, 30)).open).toBe(true) // Friday late
+  })
+
+  it('Saturday before 8 PM is open and says it closes tonight', () => {
+    expect(earnWindow(SAT_OCT_3_759PM)).toMatchObject({ open: true, closesTonight: true })
+    expect(earnWindow(SAT_OCT_3_759PM).message).toMatch(/until 8:00 PM tonight/)
   })
 
   it('Saturday after cutoff points to Monday', () => {
