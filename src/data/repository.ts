@@ -8,11 +8,14 @@ import type {
   FamilySettings,
   KidEarnAct,
   KidPendingClaim,
+  KidPointNotice,
   KidReward,
   KidSurprise,
   LedgerEntry,
   LedgerSource,
   PendingClaim,
+  PeriodPoints,
+  PointNotice,
   Reward,
   Settings,
   SurpriseDrop,
@@ -24,7 +27,7 @@ import type {
 import { applyLedgerEntry, isMeterFull } from '@/engine/meters'
 import { hashPin, isValidPinFormat, PIN_MAX_LENGTH, PIN_MIN_LENGTH, pinMatches } from '@/lib/pin'
 import { earnWindow, type EarnWindow } from '@/lib/time/calendar'
-import { denverDateKey } from '@/lib/time/denver'
+import { denverDateKey, toDenverParts } from '@/lib/time/denver'
 import { calendarMonthKey, earnWeekKey } from '@/lib/time/surpriseWeek'
 import { buildSeedDatabase, migrateDatabase, repairDatabase, SCHEMA_VERSION, TIER_PERIOD } from './seed'
 
@@ -83,6 +86,27 @@ export interface AddEarnInput {
   earnerId: string
   actId: string
   note?: string
+}
+
+export interface AddCustomPointsInput {
+  /** Kid user id, or the admin id for parents. */
+  earnerId: string
+  /** Whole number, positive to add or negative to take away. */
+  points: number
+  /** Why. Shown in the audit and, for kids, on their Home notice. */
+  reason: string
+}
+
+/** Biggest single custom adjustment, to catch a stray extra zero. */
+export const CUSTOM_POINTS_MAX = 100
+
+export class CustomPointsError extends Error {
+  readonly code: 'unknown-user' | 'bad-points' | 'empty-reason'
+  constructor(code: CustomPointsError['code'], message: string) {
+    super(message)
+    this.name = 'CustomPointsError'
+    this.code = code
+  }
 }
 
 export class RewardError extends Error {
@@ -291,8 +315,9 @@ export class Repository {
     return [...this.db.earnActs]
   }
 
+  /** Active acts in one band. Retired acts are left out. */
   listActsByBand(band: Band): EarnAct[] {
-    return this.db.earnActs.filter((a) => a.band === band)
+    return this.db.earnActs.filter((a) => a.band === band && !a.retired)
   }
 
   getAct(id: string): EarnAct | undefined {
@@ -337,6 +362,7 @@ export class Repository {
   }
 
   private actAppliesTo(act: EarnAct, user: User): boolean {
+    if (act.retired) return false
     if (user.role === 'admin') return act.band === 'parent'
     if (!user.band) return false
     if (act.band === user.band) return true
@@ -368,6 +394,79 @@ export class Repository {
     })
   }
 
+  /**
+   * ADMIN ONLY. Add or take away any whole number of points with a typed
+   * reason. Goes through the same ledger and meters as every other earn. Kids
+   * also get a Home notice with the reason (never the number).
+   */
+  adminAddCustomPoints(input: AddCustomPointsInput): LedgerEntry {
+    const user = this.getUser(input.earnerId)
+    if (!user) throw new CustomPointsError('unknown-user', `Unknown earner ${input.earnerId}`)
+    const { points } = input
+    if (!Number.isInteger(points) || points === 0) {
+      throw new CustomPointsError('bad-points', 'Points must be a whole number other than 0')
+    }
+    if (Math.abs(points) > CUSTOM_POINTS_MAX) {
+      throw new CustomPointsError('bad-points', `Keep it between -${CUSTOM_POINTS_MAX} and +${CUSTOM_POINTS_MAX}`)
+    }
+    const reason = input.reason.trim()
+    if (!reason) throw new CustomPointsError('empty-reason', 'Say what the points are for')
+
+    const at = new Date().toISOString()
+    const entry: LedgerEntry = {
+      id: newId(),
+      userId: user.id,
+      actId: null,
+      points,
+      path: 'B',
+      source: 'custom',
+      note: reason,
+      createdAt: at,
+    }
+    const notices =
+      user.role === 'admin'
+        ? this.db.pointNotices
+        : [
+            ...this.db.pointNotices,
+            {
+              id: newId(),
+              kidId: user.id,
+              ledgerEntryId: entry.id,
+              reason,
+              direction: points > 0 ? 'up' : 'down',
+              createdAt: at,
+            } satisfies PointNotice,
+          ]
+    this.commit({
+      ...this.applyPointsToDb(this.db, points, at),
+      ledger: [...this.db.ledger, entry],
+      pointNotices: notices,
+    })
+    return entry
+  }
+
+  /** KID-FACING. Custom-point notices this kid has not dismissed, oldest first. Reason only. */
+  listUnseenPointNotices(kidId: string): KidPointNotice[] {
+    return this.db.pointNotices
+      .filter((n) => n.kidId === kidId && !n.seenAt)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      .map(({ id, reason, direction, createdAt }) => ({ id, reason, direction, createdAt }))
+  }
+
+  /** KID-FACING. Dismiss notices. Only this kid's unseen notices change. */
+  markPointNoticesSeen(kidId: string, ids: string[]): void {
+    if (ids.length === 0) return
+    const wanted = new Set(ids)
+    const seenAt = new Date().toISOString()
+    let changed = false
+    const pointNotices = this.db.pointNotices.map((n) => {
+      if (n.kidId !== kidId || n.seenAt || !wanted.has(n.id)) return n
+      changed = true
+      return { ...n, seenAt }
+    })
+    if (changed) this.commit({ ...this.db, pointNotices })
+  }
+
   // --- claims (Path A "I did it" -> parent inbox) -------------------------
 
   /** Claims still waiting on a parent, newest first. */
@@ -397,6 +496,7 @@ export class Repository {
     }
     const act = this.getAct(input.actId)
     if (!act) throw new ClaimError('unknown-act', `Unknown act ${input.actId}`)
+    if (act.retired) throw new ClaimError('unknown-act', `${act.title} is no longer on the list`)
     if (act.path !== 'A') {
       throw new ClaimError('not-path-a', `${act.title} is Path B (parent-stamped) and cannot be claimed`)
     }
@@ -571,7 +671,36 @@ export class Repository {
   /** ADMIN ONLY. Zero the meters, ledger, claims, and wins for engine verification. Rewards are kept. */
   adminResetMetersAndLedger(): void {
     const fresh = buildSeedDatabase()
-    this.commit({ ...this.db, ledger: [], pendingClaims: [], wins: [], vaultMeters: fresh.vaultMeters })
+    this.commit({
+      ...this.db,
+      ledger: [],
+      pendingClaims: [],
+      wins: [],
+      pointNotices: [],
+      vaultMeters: fresh.vaultMeters,
+    })
+  }
+
+  /**
+   * ADMIN ONLY. Net approved points per person for the current earn week
+   * (Mon–Sun), Denver calendar month, and calendar quarter. Kids first, then
+   * one combined Parents row. Never call from a kid route.
+   */
+  adminPeriodPoints(now: Date = this.now()): PeriodPoints[] {
+    const week = earnWeekKey(now)
+    const month = calendarMonthKey(now)
+    const quarter = quarterKey(now)
+    return this.db.users.map((user) => {
+      const sums = { week: 0, month: 0, quarter: 0 }
+      for (const entry of this.db.ledger) {
+        if (entry.userId !== user.id) continue
+        const at = new Date(entry.createdAt)
+        if (earnWeekKey(at) === week) sums.week += entry.points
+        if (calendarMonthKey(at) === month) sums.month += entry.points
+        if (quarterKey(at) === quarter) sums.quarter += entry.points
+      }
+      return { userId: user.id, label: user.role === 'admin' ? 'Parents' : user.name, ...sums }
+    })
   }
 
   // --- rewards + wins ------------------------------------------------------
@@ -827,7 +956,7 @@ export class Repository {
     kids.forEach((kid, kidIndex) => {
       const alreadyPending = new Set(this.listKidPendingClaims(kid.id).map((c) => c.actId))
       const pathA = this.db.earnActs.filter(
-        (a) => a.band === kid.band && a.path === 'A' && !alreadyPending.has(a.id),
+        (a) => a.band === kid.band && a.path === 'A' && !a.retired && !alreadyPending.has(a.id),
       )
       // Two acts per kid, offset through the catalog so siblings get different ones.
       for (let i = 0; i < 2; i += 1) {
@@ -921,11 +1050,16 @@ export class Repository {
       at: e.createdAt,
       userId: e.userId,
       userName: nameOf(e.userId),
-      title: e.actId ? (this.getAct(e.actId)?.title ?? e.actId) : 'Simulated points',
+      title: e.actId
+        ? (this.getAct(e.actId)?.title ?? e.actId)
+        : e.source === 'custom'
+          ? e.note
+          : 'Simulated points',
       points: e.points,
       path: e.path,
       source: LEDGER_SOURCE_LABEL[e.source],
-      note: e.note,
+      // Custom rows already use the reason as their title.
+      note: e.source === 'custom' ? '' : e.note,
     }))
     const surpriseRows: AuditEvent[] = this.db.surpriseDrops.map((d) => ({
       id: d.id,
@@ -970,6 +1104,7 @@ export class Repository {
 const LEDGER_SOURCE_LABEL: Record<LedgerSource, string> = {
   inbox: 'Inbox',
   'add-earn': 'Add earn',
+  custom: 'Custom',
   simulate: 'Simulated',
 }
 
@@ -989,6 +1124,12 @@ function weekCapMessage(name: string): string {
 
 function monthCapMessage(name: string): string {
   return `${name} already has ${SURPRISE_MONTH_CAP} surprises this calendar month. Three per kid per month.`
+}
+
+/** `YYYY-Qn` for the Denver calendar quarter. */
+function quarterKey(now: Date): string {
+  const { year, month } = toDenverParts(now)
+  return `${year}-Q${Math.ceil(month / 3)}`
 }
 
 function newId(): string {

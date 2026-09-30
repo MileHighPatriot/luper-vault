@@ -33,14 +33,17 @@ export interface EarnAct {
   /** Conduct acts have separate little/teen values; other bands omit this. */
   audience?: KidBand
   rare?: boolean
+  /** Removed from the catalog. Kept so old ledger rows and claims still show a title. Never offered. */
+  retired?: boolean
 }
 
 /**
  * Where a ledger entry came from.
  * `inbox` = approved Path A claim, `add-earn` = parent-stamped Path B earn or
- * demerit, `simulate` = admin verify screen.
+ * demerit, `custom` = parent-typed points with a reason, `simulate` = admin
+ * verify screen.
  */
-export type LedgerSource = 'inbox' | 'add-earn' | 'simulate'
+export type LedgerSource = 'inbox' | 'add-earn' | 'custom' | 'simulate'
 
 /** Approved points only. Pending claims never touch this table. */
 export interface LedgerEntry {
@@ -157,6 +160,38 @@ export interface KidSurprise {
   createdAt: string
 }
 
+/**
+ * A kid's heads-up about custom points a parent logged for them. Carries the
+ * reason and direction only, never the number. `seenAt` is set when the kid
+ * dismisses it on Home.
+ */
+export interface PointNotice {
+  id: string
+  kidId: string
+  ledgerEntryId: string
+  reason: string
+  direction: 'up' | 'down'
+  createdAt: string
+  seenAt?: string
+}
+
+/** Kid-facing notice. No points, no kid id. */
+export interface KidPointNotice {
+  id: string
+  reason: string
+  direction: 'up' | 'down'
+  createdAt: string
+}
+
+/** ADMIN ONLY. Approved points one person earned in the current week, month, and quarter. */
+export interface PeriodPoints {
+  userId: string
+  label: string
+  week: number
+  month: number
+  quarter: number
+}
+
 export type WinKind = 'unlock' | 'announce'
 
 /** Something the family unlocked or a parent announced. Family-wide; no names, no scores. */
@@ -243,5 +278,6 @@ export interface Database {
   rewards: Reward[]
   wins: Win[]
   surpriseDrops: SurpriseDrop[]
+  pointNotices: PointNotice[]
   settings: Settings
 }

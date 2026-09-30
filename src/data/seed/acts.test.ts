@@ -4,9 +4,9 @@ import { SEED_USERS } from './users'
 import { createMemoryRepository } from '@/data/memoryRepository'
 
 describe('seed catalog', () => {
-  it('has the locked act counts per band (18 / 23 / 8 / 13)', () => {
+  it('has the locked act counts per band (21 / 34 / 8 / 13)', () => {
     expect(countActsByBand(SEED_ACTS)).toEqual(EXPECTED_ACT_COUNTS)
-    expect(EXPECTED_ACT_COUNTS).toEqual({ little: 18, teen: 23, conduct: 8, parent: 13 })
+    expect(EXPECTED_ACT_COUNTS).toEqual({ little: 21, teen: 34, conduct: 8, parent: 13 })
   })
 
   it('has unique ids', () => {
@@ -80,10 +80,12 @@ describe('repository seeding', () => {
     expect(repo.adminListLedger()).toHaveLength(1)
   })
 
-  it('exposes no per-user total helpers', () => {
+  it('exposes no per-user total helpers outside admin-only methods', () => {
     const repo = createMemoryRepository()
     const methodNames = Object.getOwnPropertyNames(Object.getPrototypeOf(repo))
-    const personalTotalish = methodNames.filter((n) => /total|score|balance|ForUser|ByUser/i.test(n))
+    const personalTotalish = methodNames.filter(
+      (n) => !n.startsWith('admin') && /total|score|balance|ForUser|ByUser|PeriodPoints/i.test(n),
+    )
     expect(personalTotalish).toEqual([])
   })
 })

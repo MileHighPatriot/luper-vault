@@ -15,6 +15,7 @@ import { AnnouncementBanner } from '@/components/AnnouncementBanner'
 import { ConstellationMeter } from '@/components/ConstellationMeter'
 import { PlanetAvatar } from '@/components/PlanetAvatar'
 import { SurpriseFlare } from '@/components/SurpriseFlare'
+import { PointNoticeFlare } from '@/components/PointNoticeFlare'
 import { Button } from '@/components/ui/button'
 
 const TIER_LABEL: Record<Tier, string> = { T1: 'Vault 1', T2: 'Vault 2', T3: 'Vault 3' }
@@ -180,6 +181,7 @@ export function KidHomePage() {
       </section>
 
       {user && <SurpriseFlare userId={user.id} />}
+      {user && <PointNoticeFlare userId={user.id} />}
       {user && <AnnouncementBanner userId={user.id} />}
 
       {sunday && (

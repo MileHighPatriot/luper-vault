@@ -1,4 +1,4 @@
-import type { Database } from '@/data/types'
+import type { Database, EarnAct } from '@/data/types'
 import { initialMeters } from '@/engine/meters'
 import { FALLBACK_ADMIN_PIN, hashPin } from '@/lib/pin'
 import { SEED_ACTS } from './acts'
@@ -8,9 +8,10 @@ import { SEED_USERS } from './users'
 /**
  * v1 Phase 1 foundation · v2 Phase 2 claim status + ledger source ·
  * v3 Phase 5 rewards + wins tables · v4 Phase 6 forceLive + clockOverride settings ·
- * v5 Phase 7 surprise drops · v6 Phase 8 admin PIN digest, family name, mute flag.
+ * v5 Phase 7 surprise drops · v6 Phase 8 admin PIN digest, family name, mute flag ·
+ * v7 catalog refresh (2026-09-29) + custom-point notices.
  */
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 /** Placeholder until a parent edits it in Settings. */
 export const PLACEHOLDER_VERSE =
@@ -33,6 +34,7 @@ export function buildSeedDatabase(now: Date = new Date(), options: SeedOptions =
     rewards: buildSeedRewards(now),
     wins: [],
     surpriseDrops: [],
+    pointNotices: [],
     settings: {
       schemaVersion: SCHEMA_VERSION,
       verse: PLACEHOLDER_VERSE,
@@ -78,8 +80,22 @@ export function migrateDatabase(db: Database, now: Date = new Date(), options: S
     }
     version = 6
   }
+  if (version === 6) {
+    next = { ...next, earnActs: refreshCatalog(next.earnActs ?? []), pointNotices: next.pointNotices ?? [] }
+    version = 7
+  }
   if (version !== SCHEMA_VERSION) return null
   return repairDatabase({ ...next, settings: { ...next.settings, schemaVersion: SCHEMA_VERSION } }, now, options)
+}
+
+/**
+ * Swap in the current seed catalog. Acts the seed no longer has stay as
+ * `retired` so past ledger rows and pending claims keep their titles.
+ */
+export function refreshCatalog(existing: readonly EarnAct[]): EarnAct[] {
+  const seedIds = new Set(SEED_ACTS.map((a) => a.id))
+  const retired = existing.filter((a) => !seedIds.has(a.id)).map((a) => ({ ...a, retired: true }))
+  return [...SEED_ACTS, ...retired]
 }
 
 /**
@@ -98,6 +114,7 @@ export function repairDatabase(db: Database, now: Date = new Date(), options: Se
     rewards: db.rewards ?? fresh.rewards,
     wins: db.wins ?? [],
     surpriseDrops: db.surpriseDrops ?? [],
+    pointNotices: db.pointNotices ?? [],
     settings: { ...fresh.settings, ...db.settings },
   }
 }

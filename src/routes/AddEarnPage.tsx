@@ -1,9 +1,9 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { BadgeCheck, CircleMinus, CirclePlus, ShieldCheck, Sparkles, UserRound, X } from 'lucide-react'
+import { BadgeCheck, CircleMinus, CirclePlus, PencilLine, ShieldCheck, Sparkles, UserRound, X } from 'lucide-react'
 import { useRepository, useRepositoryValue } from '@/data/RepositoryContext'
 import type { EarnAct, LedgerEntry, User } from '@/data/types'
-import { AddEarnError } from '@/data/repository'
+import { AddEarnError, CUSTOM_POINTS_MAX, CustomPointsError } from '@/data/repository'
 import { splitPoints, tenthsToPoints } from '@/engine/meters'
 import { MeterStrip } from '@/components/MeterStrip'
 import { Badge } from '@/components/ui/badge'
@@ -84,6 +84,11 @@ export function AddEarnPage() {
   const [note, setNote] = useState('')
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [customPoints, setCustomPoints] = useState('')
+  const [customReason, setCustomReason] = useState('')
+  const [customError, setCustomError] = useState<string | null>(null)
+  const customValue = Number(customPoints)
+  const customReady = customPoints.trim() !== '' && Number.isInteger(customValue) && customValue !== 0 && customReason.trim() !== ''
 
   const earns = useMemo(() => acts.filter((a) => a.points > 0), [acts])
   const demerits = useMemo(() => acts.filter((a) => a.points < 0), [acts])
@@ -92,6 +97,21 @@ export function AddEarnPage() {
     setEarnerId(id)
     setActId(null)
     setError(null)
+    setCustomError(null)
+  }
+
+  function submitCustom(event: FormEvent) {
+    event.preventDefault()
+    if (!earner) return
+    try {
+      const entry = repo.adminAddCustomPoints({ earnerId: earner.id, points: customValue, reason: customReason })
+      setConfirmation({ entry, earnerName: earnerLabel(earner), actTitle: entry.note })
+      setCustomPoints('')
+      setCustomReason('')
+      setCustomError(null)
+    } catch (err) {
+      setCustomError(err instanceof CustomPointsError ? err.message : 'Could not add those points. Try again.')
+    }
   }
 
   function submit(event: FormEvent) {
@@ -116,7 +136,7 @@ export function AddEarnPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Add earn</h1>
         <p className="text-sm text-muted-foreground">
           Parent-stamped Path B earns and demerits go straight into the family ledger. Path A acts are claimed by kids
-          and handled in the Inbox.
+          and handled in the Inbox. Use Custom points for anything not on the list.
         </p>
       </div>
 
@@ -136,7 +156,7 @@ export function AddEarnPage() {
               <p className="text-muted-foreground">
                 {confirmation.actTitle} → T1 {signed(tenthsToPoints(split.T1))}, T2 {signed(tenthsToPoints(split.T2))},
                 T3 {signed(tenthsToPoints(split.T3))}
-                {confirmation.entry.note ? ` · “${confirmation.entry.note}”` : ''}
+                {confirmation.entry.source !== 'custom' && confirmation.entry.note ? ` · “${confirmation.entry.note}”` : ''}
               </p>
             </div>
           </div>
@@ -263,6 +283,72 @@ export function AddEarnPage() {
             {error}
           </p>
         )}
+      </form>
+
+      <form onSubmit={submitCustom}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PencilLine className="size-5 text-primary" aria-hidden />
+              Custom points
+            </CardTitle>
+            <CardDescription>
+              Any amount for {earner ? earnerLabel(earner) : '—'}, with a reason. Use a minus sign to take points away.
+              {earner && earner.role !== 'admin'
+                ? ` ${earner.name} sees the reason (not the number) next time they open the app.`
+                : ''}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex flex-col gap-1 sm:w-28">
+              <label htmlFor="custom-points" className="text-xs font-medium text-muted-foreground">
+                Points
+              </label>
+              <Input
+                id="custom-points"
+                type="number"
+                inputMode="numeric"
+                step={1}
+                min={-CUSTOM_POINTS_MAX}
+                max={CUSTOM_POINTS_MAX}
+                value={customPoints}
+                onChange={(e) => setCustomPoints(e.target.value)}
+                placeholder="+5 or -3"
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-1">
+              <label htmlFor="custom-reason" className="text-xs font-medium text-muted-foreground">
+                What it's for
+              </label>
+              <Input
+                id="custom-reason"
+                value={customReason}
+                onChange={(e) => setCustomReason(e.target.value)}
+                placeholder="Helped a neighbor carry groceries"
+                maxLength={140}
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={!customReady}
+              variant={customReady && customValue < 0 ? 'destructive' : 'default'}
+              className="sm:min-w-56"
+            >
+              {customReady
+                ? customValue < 0
+                  ? `Take ${Math.abs(customValue)} from ${earner ? earnerLabel(earner) : ''}`
+                  : `Add ${signed(customValue)} for ${earner ? earnerLabel(earner) : ''}`
+                : 'Enter points and a reason'}
+            </Button>
+          </CardContent>
+          {customError && (
+            <CardContent className="pt-0">
+              <p role="alert" className="text-sm font-medium text-destructive">
+                {customError}
+              </p>
+            </CardContent>
+          )}
+        </Card>
       </form>
     </div>
   )

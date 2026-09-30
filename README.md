@@ -81,6 +81,8 @@ Kids read settings only through `getFamilySettings()` (family name, verse, mute 
 
 One list of every **ledger write** (Inbox approvals = Path A, Add earn stamps and simulated points = Path B) and every **surprise drop** (with its pending / seen / canceled status), newest first. Columns: Denver time, who, what, points (ledger rows only; surprises show —), type, source, note. Filters: free-text search (act, note, name, source), who (each kid or Parent), type (everything / Path A / Path B / surprises), and a Denver date range. Shows the newest 200 matches. The old `/admin/ledger` URL redirects here.
 
+A **Points so far** table at the top shows each kid's and the Parents' net points for the current earn week (Mon–Sun), Denver calendar month, and calendar quarter.
+
 View-only in this phase. `TODO(audit-void)` in `Repository.adminListAuditEvents` marks where void/undo will land.
 
 ## Surprise drops (Phase 7 of polish)
@@ -165,10 +167,10 @@ Kid-facing data comes only from `listEarnActsForKid`, `listKidPendingClaims`, `g
 After logging in as Admin, the parent console links to the tabs under `/admin`:
 
 - **Inbox** (`/admin/inbox`) — pending Path A claims, newest first, with kid, act, points, and Denver time. Per row: **Approve**, **Deny**, **Edit** (change points and/or add a note, then Approve or Deny). **Approve all today** approves every pending claim created on the current Denver calendar day. Empty state reads "All clear".
-- **Add earn** (`/admin/add-earn`) — pick an earner (Kameron, Alea, Christopher, or Parent = the admin logging their own act), then a **Path B only** act. Kids see their band's Path B stamps (Honest, School growth, Bible verse, ...) plus the conduct acts for their audience (Caught good, Outstanding day, Day demerit, Serious); Parent sees the parent list including the parent day demerit. Path A acts are not offered and are rejected by the repository if forced. Optional note. Submit writes the ledger and moves the meters immediately, then shows a "Vault updated" banner with the 50/30/20 split and a link to the Ledger.
+- **Add earn** (`/admin/add-earn`) — pick an earner (Kameron, Alea, Christopher, or Parent = the admin logging their own act), then a **Path B only** act. Kids see their band's Path B stamps (Honest, School growth, Bible verse, ...) plus the conduct acts for their audience (Caught good, Outstanding day, Day demerit, Serious); Parent sees the parent list including the parent day demerit. Path A acts are not offered and are rejected by the repository if forced. Optional note. Submit writes the ledger and moves the meters immediately, then shows a "Vault updated" banner with the 50/30/20 split and a link to the Ledger. **Custom points** at the bottom takes any whole number from -100 to +100 plus a required reason (source `custom`). For a kid it also queues a Home notice showing the reason only, no number.
 - **Rewards** (`/admin/rewards`) — one list per vault tier. Add a reward (title + blurb), edit inline, deactivate / reactivate (inactive rewards are hidden from kids but kept), and **Announce** (stamps the reward, records an "Announced" Win, and queues the one-time banner for every kid; announcing twice is a no-op). Each tier header shows whether its meter is currently unlocked.
 - **Clock** (`/admin/clock`) — Denver now, go-live status, earn window open / closed with reason, day / cutoff flags, month and quarter tier status with season label, the **FORCE_LIVE** toggle, a **clock preview** (presets for before go-live, go-live Monday, Mon 8:01 PM, Tue 3 PM, Sat 8:30 PM, Sunday, or any custom instant) that freezes the household clock for every gate until cleared, and the same countdown chips the kids see.
-- **Audit** (`/admin/audit`) — every approved ledger event plus every surprise drop, searchable and filterable (see Phase 8 above). Sources are `Inbox` (approved claim), `Add earn` (parent stamp), `Simulated` (verify screen), or `Surprise`. Pending and denied claims never appear here. `/admin/ledger` redirects here.
+- **Audit** (`/admin/audit`) — every approved ledger event plus every surprise drop, searchable and filterable (see Phase 8 above). Sources are `Inbox` (approved claim), `Add earn` (parent stamp), `Custom` (typed points with a reason), `Simulated` (verify screen), or `Surprise`. Pending and denied claims never appear here. `/admin/ledger` redirects here.
 - **Settings** (`/admin/settings`) — family name, Sky log verse, kid-sound mute, read-only clock note, and the admin PIN change form.
 - **Verify** (`/admin/verify`) — meter engine and seed checks (see below).
 - **Dev tools** (`/admin/dev`) — queue a Path A claim on a kid's behalf (kids normally claim from their own Earn screen), or **Seed demo claims** (two per kid, skipping acts already pending). Path B acts cannot be queued. Also lists recent claims of every status and offers a full reset of claims, ledger, and meters.
@@ -185,7 +187,7 @@ Open **Verify** (`/admin/verify`). It shows:
 
 - T1 / T2 / T3 fill, percentage, and any tracked overflow
 - **Simulate +10 approved points** (expect T1 +5, T2 +3, T3 +2), **Simulate −5 demerit**, **Reset meters**
-- Seeded act counts by band against the locked expectations (little 18, teen 23, conduct 8, parent 13)
+- Seeded act counts by band against the locked expectations (little 21, teen 34, conduct 8, parent 13)
 
 ## Live URL (GitHub Pages)
 
@@ -228,7 +230,7 @@ Swapping to SQLite later means writing one more `StorageAdapter`; UI and engine 
 
 ### Kid safety rule
 
-The repository exposes **no per-user or per-sibling totals**. The only aggregate is `getMeters()` (family-wide). Kid-facing projections (`KidEarnAct`, `KidPendingClaim`, `KidReward`, `KidSurprise`, `Win`) strip point values and per-kid fields; tests assert their JSON never contains `points`, `cost`, `seenBy`, or `userId`. Surprise reads for kids are scoped to that kid (`listPendingSurprisesForKid`, `listSeenSurprisesForKid`). Ledger reads and claim resolution are prefixed `admin*` or documented ADMIN ONLY, and are only reached from admin routes behind `RequireAdmin`. Please keep it that way in later phases.
+The repository exposes **no per-user or per-sibling totals to kids**. The only kid-safe aggregate is `getMeters()` (family-wide); `adminPeriodPoints()` (per-person week / month / quarter sums for the Audit page) is admin only. Custom-point notices (`listUnseenPointNotices`) carry the parent's reason and an up/down direction, never the number. Kid-facing projections (`KidEarnAct`, `KidPendingClaim`, `KidReward`, `KidSurprise`, `Win`) strip point values and per-kid fields; tests assert their JSON never contains `points`, `cost`, `seenBy`, or `userId`. Surprise reads for kids are scoped to that kid (`listPendingSurprisesForKid`, `listSeenSurprisesForKid`). Ledger reads and claim resolution are prefixed `admin*` or documented ADMIN ONLY, and are only reached from admin routes behind `RequireAdmin`. Please keep it that way in later phases.
 
 ## Meter engine
 
@@ -251,10 +253,12 @@ Key exports: `splitPoints(points)`, `applyLedgerEntry(meters, points)`, `initial
 
 `src/data/seed/acts.ts` holds the locked lists. Each act carries `band`, `points`, `path` (`A` kid-claimable / `B` parent-stamped), and `pathBStamp`. Conduct acts exist twice (little / teen values) via `audience`.
 
+The lists were refreshed on 2026-09-29 (schema v7). Renamed acts keep their ids so history stays linked. Acts removed from the seed stay in the synced snapshot with `retired: true`: they still title old ledger rows and pending claims, but kids, Add earn, and claims never offer them. To change the catalog again, edit the seed, bump `SCHEMA_VERSION`, and add a migration step that calls `refreshCatalog`.
+
 | Band | Acts | All Path B? |
 |------|------|-------------|
-| little | 18 | no (4 Path B) |
-| teen | 23 | no (10 Path B) |
+| little | 21 | no (4 Path B) |
+| teen | 34 | no (10 Path B) |
 | conduct | 8 | yes |
 | parent | 13 | yes |
 

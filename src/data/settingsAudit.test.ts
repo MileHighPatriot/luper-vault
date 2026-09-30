@@ -98,7 +98,7 @@ describe('family settings', () => {
         {
           id: 'l1',
           userId: 'kameron',
-          actId: 'little.dogs',
+          actId: 'little.ready-school',
           points: 3,
           path: 'A',
           source: 'inbox',
@@ -144,7 +144,7 @@ describe('audit log', () => {
   function seeded() {
     const repo = createMemoryRepository()
     repo.adminSetClockOverride(iso(denverInstant(2026, 10, 6, 15))) // Tue Oct 6
-    const claim = repo.claimForKid({ userId: 'kameron', actId: 'little.dogs' }) // +3
+    const claim = repo.claimForKid({ userId: 'kameron', actId: 'little.ready-school' }) // +3
     repo.approveClaim(claim.id, { note: 'Good job' })
     repo.adminAddEarn({ earnerId: 'christopher', actId: 'teen.own-mistake' })
     repo.adminAddEarn({ earnerId: 'admin', actId: 'parent.day-demerit' })
@@ -169,7 +169,7 @@ describe('audit log', () => {
     expect(events.find((e) => e.path === 'A')).toMatchObject({
       kind: 'ledger',
       userName: 'Kameron',
-      title: 'Dogs',
+      title: 'Ready for school on time',
       points: 3,
       path: 'A',
       source: 'Inbox',
@@ -182,7 +182,7 @@ describe('audit log', () => {
 
   it('filters by kid', () => {
     const repo = seeded()
-    expect(repo.adminListAuditEvents({ userId: 'kameron' }).map((e) => e.title)).toEqual(['Dogs'])
+    expect(repo.adminListAuditEvents({ userId: 'kameron' }).map((e) => e.title)).toEqual(['Ready for school on time'])
     expect(repo.adminListAuditEvents({ userId: 'alea' }).map((e) => e.kind)).toEqual(['surprise'])
     expect(repo.adminListAuditEvents({ userId: 'christopher' })).toHaveLength(1)
   })

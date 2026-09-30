@@ -27,7 +27,7 @@ describe('reward seed and migration', () => {
         {
           id: 'l1',
           userId: 'kameron',
-          actId: 'little.dogs',
+          actId: 'little.ready-school',
           points: 3,
           path: 'A',
           source: 'inbox',
@@ -143,7 +143,7 @@ describe('unlock detection', () => {
     simulate(repo, 1865) // total 2799 -> T3 559.8, not yet
     expect(repo.listWins()).toHaveLength(2)
 
-    const claim = repo.queueClaim({ userId: 'kameron', actId: 'little.dogs' }) // +3 -> T3 560.4
+    const claim = repo.queueClaim({ userId: 'kameron', actId: 'little.ready-school' }) // +3 -> T3 560.4
     repo.approveClaim(claim.id)
     const wins = repo.listWins()
     expect(wins).toHaveLength(3)

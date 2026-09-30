@@ -19,49 +19,65 @@ function build(band: Band, specs: ActSpec[]): EarnAct[] {
   }))
 }
 
+// Ids are stable: renaming an act keeps its id so past ledger rows and pending
+// claims stay linked. Removed acts live on as `retired` rows (see migrateDatabase).
 const LITTLE: ActSpec[] = [
   ['make-bed', 'Make bed', 2],
   ['pack-backpack', 'Pack backpack', 2],
-  ['dogs', 'Dogs', 3],
   ['ready-school', 'Ready for school on time', 3],
+  ['teeth', 'Brush teeth', 2],
+  ['shoes-coat-door', 'Shoes and coat by the door', 1],
+  ['dogs', 'Feed the dogs', 2],
+  ['dogs-water', "Fill the dogs' water", 2],
+  ['hamper', 'Pick up dirty clothes', 1],
+  ['room-reset', 'Clean room', 4],
+  ['parents-room', "Clean up your stuff in Mom and Dad's room", 3],
+  ['unload-dishwasher', 'Unload the dishwasher', 3],
+  ['vacuum-living', 'Vacuum the living room', 4],
+  ['trash', 'Take out the trash', 4],
+  ['balcony', 'Clean up the balcony', 4],
+  ['homework-calm', 'Homework', 4],
+  ['read-20', 'Read 20 minutes', 3],
   ['ready-bed', 'Ready for bed on time', 3],
   ['honest', 'Honest when it was easier to lie', 5, 'B'],
-  ['read-20', 'Read 20 minutes', 3],
-  ['homework-calm', 'Homework without lots of crying or complaining', 4],
   ['school-growth', 'School growth', 6, 'B'],
-  ['help-food', 'Help with food', 3],
-  ['room-reset', 'Clean room reset', 4],
-  ['room-keep', 'Keep room clean', 2],
-  ['teeth', 'Teeth without a fight', 2],
-  ['shoes-coat-door', 'Shoes and coat by the door', 1],
-  ['hamper', 'Hamper', 1],
   ['kind-sibling', 'Kind to a sibling', 3, 'B'],
-  ['shoes-first-ask', 'Shoes on first ask', 2],
   ['bible-verse', 'Memorize and recite a Bible verse', 5, 'B'],
 ]
 
 const TEEN: ActSpec[] = [
+  ['wake-on-time', 'Wake up on time', 2],
+  ['alarm-ready', 'Wake up with your own alarm', 4],
+  ['make-bed', 'Make bed', 2],
+  ['teeth', 'Brush teeth', 1],
+  ['hamper', 'Dirty clothes in the hamper', 1],
+  ['room-clean', 'Clean room', 4],
+  ['closet', 'Clean and organize closet', 5],
+  ['parents-room', "Clean up your mess in Mom and Dad's room", 3],
   ['laundry', 'Laundry start to finish', 5],
-  ['trash-recycle', 'Trash and recycle', 2],
-  ['kitchen-dinner', 'Kitchen after dinner', 4],
-  ['solo-meal', 'Solo planned family meal', 8, 'B'],
-  ['bathroom', 'Clean bathroom', 4],
-  ['watch-kids', 'Watch the kids', 5, 'B'],
+  ['kitchen-dinner', 'Empty and load the dishwasher', 4],
+  ['bathroom', 'Clean bathroom', 7],
+  ['own-trash-day', 'Take out the trash', 2],
+  ['dogs', 'Take the dogs out', 3],
+  ['dogs-feed', 'Feed the dogs', 2],
+  ['dogs-water', "Fill the dogs' water", 2],
+  ['kids-outside', 'Take the kids outside without being asked', 5],
   ['homework-no-reminders', 'Homework with no repeated reminders', 1],
-  ['alarm-ready', 'Alarm and ready', 3],
+  ['read-30', 'Read 30 minutes', 3],
+  ['test-90', '90% or above on a test', 5],
+  ['ready-bed', 'Go to bed on time', 3],
+  ['help-food', 'Help with food', 2],
+  ['meal-plan', 'Meal-plan one dinner', 3],
+  ['adult-skill', 'Adult skill practice', 4],
+  ['no-phone-focus', '30 minutes no-phone focus', 3],
+  ['solo-meal', 'Solo planned family meal', 8, 'B'],
+  ['watch-kids', 'Watch the kids', 5, 'B'],
   ['follow-through', 'Follow through on a commitment or goal', 5, 'B'],
   ['own-mistake', 'Own a mistake', 5, 'B'],
-  ['adult-skill', 'Adult skill practice', 4],
   ['teach-little', 'Teach a little a chore or skill', 6, 'B'],
-  ['dogs', 'Dogs', 3],
   ['school-growth', 'School growth', 6, 'B'],
-  ['help-food', 'Help with food', 2],
   ['fill-gas', 'Fill gas once', 3, 'B'],
-  ['meal-plan', 'Meal-plan one dinner', 3],
   ['budget-errand', 'Budget a $20 errand', 4, 'B'],
-  ['no-phone-focus', '30 minutes no-phone focus', 3],
-  ['small-fix', 'Small fix', 3],
-  ['own-trash-day', 'Own trash day', 2],
   ['help-fil', "Help at FIL's", 5, 'B', { rare: true }],
   ['bible-verse', 'Memorize and recite a Bible verse', 5, 'B'],
 ]
@@ -108,14 +124,15 @@ export const SEED_ACTS: readonly EarnAct[] = [
 ]
 
 export const EXPECTED_ACT_COUNTS: Readonly<Record<Band, number>> = {
-  little: 18,
-  teen: 23,
+  little: 21,
+  teen: 34,
   conduct: 8,
   parent: 13,
 }
 
+/** Active acts per band. Retired acts are kept for history and not counted. */
 export function countActsByBand(acts: readonly EarnAct[]): Record<Band, number> {
   const counts: Record<Band, number> = { little: 0, teen: 0, conduct: 0, parent: 0 }
-  for (const act of acts) counts[act.band] += 1
+  for (const act of acts) if (!act.retired) counts[act.band] += 1
   return counts
 }

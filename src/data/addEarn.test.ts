@@ -120,7 +120,7 @@ describe('adminAddEarn', () => {
 
   it('coexists with inbox approvals in the same ledger', () => {
     const repo = createMemoryRepository()
-    repo.approveClaim(repo.queueClaim({ userId: 'alea', actId: 'little.dogs' }).id) // +3
+    repo.approveClaim(repo.queueClaim({ userId: 'alea', actId: 'little.ready-school' }).id) // +3
     repo.adminAddEarn({ earnerId: 'alea', actId: 'little.bible-verse' }) // +5
     expect(repo.adminListLedger().map((e) => e.source)).toEqual(['inbox', 'add-earn'])
     expect(meterValues(repo)).toEqual({ T1: 40, T2: 24, T3: 16 })

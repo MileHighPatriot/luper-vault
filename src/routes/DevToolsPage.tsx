@@ -29,7 +29,7 @@ export function DevToolsPage() {
   const [kidId, setKidId] = useState(kids[0]?.id ?? '')
   const kid = kids.find((k) => k.id === kidId) ?? kids[0]
   const pathAActs = useMemo(
-    () => acts.filter((a) => a.band === kid?.band && a.path === 'A'),
+    () => acts.filter((a) => a.band === kid?.band && a.path === 'A' && !a.retired),
     [acts, kid?.band],
   )
   const [actId, setActId] = useState('')

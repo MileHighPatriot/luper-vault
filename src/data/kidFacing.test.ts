@@ -8,8 +8,8 @@ describe('listEarnActsForKid', () => {
     const acts = repo.listEarnActsForKid('kameron')
     const ids = acts.map((a) => a.id)
 
-    // 18 little acts + 2 positive little conduct stamps
-    expect(acts).toHaveLength(20)
+    // 21 little acts + 2 positive little conduct stamps
+    expect(acts).toHaveLength(23)
     expect(ids).toContain('little.make-bed')
     expect(ids).toContain('little.honest')
     expect(ids).toContain('conduct.caught-good-little')
@@ -31,15 +31,15 @@ describe('listEarnActsForKid', () => {
     const little = repo.listEarnActsForKid('alea')
     const teenIds = new Set(teen.map((a) => a.id))
 
-    // 23 teen acts + 2 positive teen conduct stamps
-    expect(teen).toHaveLength(25)
+    // 34 teen acts + 2 positive teen conduct stamps
+    expect(teen).toHaveLength(36)
     expect(teenIds.has('teen.laundry')).toBe(true)
     expect(teenIds.has('teen.help-fil')).toBe(true)
     expect(teen.find((a) => a.id === 'teen.help-fil')?.rare).toBe(true)
     expect(teenIds.has('conduct.caught-good-teen')).toBe(true)
     expect(teenIds.has('little.make-bed')).toBe(false)
     expect(little.some((a) => teenIds.has(a.id))).toBe(false)
-    expect(teen.filter((a) => a.path === 'A')).toHaveLength(13)
+    expect(teen.filter((a) => a.path === 'A')).toHaveLength(24)
     expect(teen.filter((a) => a.path === 'B')).toHaveLength(12)
   })
 
@@ -104,7 +104,7 @@ describe('kid claim flow', () => {
 describe('kid safety: repository surface', () => {
   it('kid-facing methods never return a points field', () => {
     const repo = createMemoryRepository()
-    repo.queueClaim({ userId: 'kameron', actId: 'little.dogs' })
+    repo.queueClaim({ userId: 'kameron', actId: 'little.ready-school' })
     const payloads: unknown[] = [
       ...repo.listEarnActsForKid('kameron'),
       ...repo.listKidPendingClaims('kameron'),

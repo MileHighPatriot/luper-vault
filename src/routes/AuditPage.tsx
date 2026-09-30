@@ -1,18 +1,18 @@
 import { useState } from 'react'
-import { Search, ScrollText, X } from 'lucide-react'
+import { Search, ScrollText, Sigma, X } from 'lucide-react'
 import { useRepositoryValue } from '@/data/RepositoryContext'
 import type { AuditEvent, AuditFilter, AuditPath, SurpriseStatus } from '@/data/types'
 import { formatDenver } from '@/lib/time/denver'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { NativeSelect } from '@/components/ui/native-select'
 
 const PATH_OPTIONS: { value: AuditPath | 'all'; label: string }[] = [
   { value: 'all', label: 'Everything' },
   { value: 'A', label: 'Path A (Inbox approvals)' },
-  { value: 'B', label: 'Path B (Add earn, simulated)' },
+  { value: 'B', label: 'Path B (Add earn, custom, simulated)' },
   { value: 'surprise', label: 'Surprises' },
 ]
 
@@ -20,6 +20,50 @@ const STATUS_LABEL: Record<SurpriseStatus, string> = {
   pending: 'not seen',
   seen: 'seen',
   canceled: 'canceled',
+}
+
+function signedPoints(points: number): string {
+  return points > 0 ? `+${points}` : String(points)
+}
+
+/** Net points per person for the current week, month, and quarter. */
+function PeriodTotals() {
+  const rows = useRepositoryValue((r) => r.adminPeriodPoints())
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sigma className="size-5 text-primary" aria-hidden />
+          Points so far
+        </CardTitle>
+        <CardDescription>
+          Net approved points (demerits subtracted). Week runs Monday–Sunday; month and quarter are calendar-based, Denver time.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="overflow-x-auto p-0 pb-2">
+        <table className="w-full text-sm" data-testid="audit-totals">
+          <thead className="text-left text-muted-foreground">
+            <tr className="border-b">
+              <th scope="col" className="px-4 py-2 font-medium">Who</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">This week</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">This month</th>
+              <th scope="col" className="px-4 py-2 text-right font-medium">This quarter</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.userId} className="border-b last:border-0" data-testid="audit-totals-row" data-user={row.userId}>
+                <td className="px-4 py-2 font-medium">{row.label}</td>
+                <td className="px-4 py-2 text-right font-semibold tabular-nums">{signedPoints(row.week)}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{signedPoints(row.month)}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{signedPoints(row.quarter)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  )
 }
 
 function PathBadge({ event }: { event: AuditEvent }) {
@@ -75,6 +119,8 @@ export function AuditPage() {
         </p>
       </div>
 
+      <PeriodTotals />
+
       <Card>
         <CardContent className="grid gap-3 pt-6 sm:grid-cols-2 lg:grid-cols-5">
           <label className="flex flex-col gap-1.5 text-sm font-medium lg:col-span-2">
@@ -96,7 +142,7 @@ export function AuditPage() {
               <option value="">Everyone</option>
               {users.map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.role === 'admin' ? 'Parent' : u.name}
+                  {u.role === 'admin' ? 'Parents' : u.name}
                 </option>
               ))}
             </NativeSelect>

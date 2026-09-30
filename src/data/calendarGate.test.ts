@@ -45,13 +45,13 @@ describe('claimForKid respects the household calendar', () => {
     const repo = createMemoryRepository()
     repo.adminSetClockOverride(iso(denverInstant(2026, 9, 22, 15))) // Tue 3 PM, pre go-live
     expect(repo.getEarnWindow()).toMatchObject({ open: false, reason: 'before-go-live' })
-    expect(() => repo.claimForKid({ userId: 'kameron', actId: 'little.dogs' })).toThrow(ClaimError)
-    expect(() => repo.claimForKid({ userId: 'kameron', actId: 'little.dogs' })).toThrow(/Sep 28/)
+    expect(() => repo.claimForKid({ userId: 'kameron', actId: 'little.ready-school' })).toThrow(ClaimError)
+    expect(() => repo.claimForKid({ userId: 'kameron', actId: 'little.ready-school' })).toThrow(/Sep 28/)
     expect(repo.listPendingClaims()).toEqual([])
 
     repo.adminSetForceLive(true)
     expect(repo.getEarnWindow().open).toBe(true)
-    const claim = repo.claimForKid({ userId: 'kameron', actId: 'little.dogs' })
+    const claim = repo.claimForKid({ userId: 'kameron', actId: 'little.ready-school' })
     expect(claim.createdAt).toBe(iso(denverInstant(2026, 9, 22, 15)))
   })
 
@@ -76,7 +76,7 @@ describe('claimForKid respects the household calendar', () => {
   it('admin queueClaim bypasses the gate for testing, and approve-all-today uses the overridden clock', () => {
     const repo = createMemoryRepository()
     repo.adminSetClockOverride(iso(denverInstant(2026, 10, 4, 10))) // Sunday
-    const claim = repo.queueClaim({ userId: 'kameron', actId: 'little.dogs', createdAt: iso(denverInstant(2026, 10, 4, 9)) })
+    const claim = repo.queueClaim({ userId: 'kameron', actId: 'little.ready-school', createdAt: iso(denverInstant(2026, 10, 4, 9)) })
     expect(repo.listPendingClaims()).toHaveLength(1)
     const approved = repo.approveAllPendingOn()
     expect(approved.map((e) => e.claimId)).toEqual([claim.id])
@@ -89,7 +89,7 @@ describe('claimForKid respects the household calendar', () => {
 
     // 237 pts -> T1 at 118.5; the kid's +3 (T1 share +1.5) lands exactly on 120.
     repo.recordApprovedPoints({ userId: 'admin', actId: null, points: 237, path: 'B', source: 'simulate' })
-    const claim = repo.claimForKid({ userId: 'alea', actId: 'little.dogs' })
+    const claim = repo.claimForKid({ userId: 'alea', actId: 'little.ready-school' })
     expect(repo.listPendingClaims().map((c) => c.id)).toEqual([claim.id])
     repo.approveClaim(claim.id)
 

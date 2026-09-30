@@ -69,7 +69,7 @@ function MeterCard({ meter }: { meter: VaultMeter }) {
 export function AdminVerifyPage() {
   const repo = useRepository()
   const meters = useRepositoryValue((r) => r.getMeters())
-  const acts = useRepositoryValue((r) => r.listActs())
+  const acts = useRepositoryValue((r) => r.listActs().filter((a) => !a.retired))
   const ledger = useRepositoryValue((r) => r.adminListLedger())
   const settings = useRepositoryValue((r) => r.getSettings())
   const counts = countActsByBand(acts)

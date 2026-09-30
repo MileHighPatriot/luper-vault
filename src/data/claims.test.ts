@@ -13,8 +13,8 @@ function meterValues(repo: ReturnType<typeof createMemoryRepository>) {
 describe('queueClaim', () => {
   it('queues a Path A act for a kid with catalog points', () => {
     const repo = createMemoryRepository()
-    const claim = repo.queueClaim({ userId: 'kameron', actId: 'little.dogs' })
-    expect(claim).toMatchObject({ userId: 'kameron', actId: 'little.dogs', requestedPoints: 3, status: 'pending' })
+    const claim = repo.queueClaim({ userId: 'kameron', actId: 'little.ready-school' })
+    expect(claim).toMatchObject({ userId: 'kameron', actId: 'little.ready-school', requestedPoints: 3, status: 'pending' })
     expect(repo.listPendingClaims()).toHaveLength(1)
     expect(repo.adminListLedger()).toEqual([])
     expect(meterValues(repo)).toEqual({ T1: 0, T2: 0, T3: 0 })
@@ -30,13 +30,13 @@ describe('queueClaim', () => {
 
   it('rejects the admin user and unknown acts', () => {
     const repo = createMemoryRepository()
-    expect(() => repo.queueClaim({ userId: 'admin', actId: 'little.dogs' })).toThrow(/Only kids/)
+    expect(() => repo.queueClaim({ userId: 'admin', actId: 'little.ready-school' })).toThrow(/Only kids/)
     expect(() => repo.queueClaim({ userId: 'alea', actId: 'nope' })).toThrow(/Unknown act/)
   })
 
   it('lists pending claims newest first', () => {
     const repo = createMemoryRepository()
-    repo.queueClaim({ userId: 'kameron', actId: 'little.dogs', createdAt: '2026-09-22T10:00:00.000Z' })
+    repo.queueClaim({ userId: 'kameron', actId: 'little.ready-school', createdAt: '2026-09-22T10:00:00.000Z' })
     repo.queueClaim({ userId: 'alea', actId: 'little.hamper', createdAt: '2026-09-22T12:00:00.000Z' })
     expect(repo.listPendingClaims().map((c) => c.userId)).toEqual(['alea', 'kameron'])
   })
@@ -110,11 +110,11 @@ describe('approveAllPendingOn', () => {
     const today = denverDateKey()
     const yesterday = new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString()
 
-    const old = repo.queueClaim({ userId: 'kameron', actId: 'little.dogs', createdAt: yesterday }) // 3
+    const old = repo.queueClaim({ userId: 'kameron', actId: 'little.ready-school', createdAt: yesterday }) // 3
     const twoMinAgo = new Date(Date.now() - 2 * 60_000).toISOString()
     const oneMinAgo = new Date(Date.now() - 60_000).toISOString()
     const a = repo.queueClaim({ userId: 'alea', actId: 'little.hamper', createdAt: twoMinAgo }) // 1
-    const b = repo.queueClaim({ userId: 'christopher', actId: 'teen.trash-recycle', createdAt: oneMinAgo }) // 2
+    const b = repo.queueClaim({ userId: 'christopher', actId: 'teen.own-trash-day', createdAt: oneMinAgo }) // 2
 
     const entries = repo.approveAllPendingOn(today)
     expect(entries.map((e) => e.claimId)).toEqual([a.id, b.id])
@@ -139,7 +139,7 @@ describe('adminSeedDemoClaims', () => {
 describe('reset', () => {
   it('clears ledger, meters, and claims together', () => {
     const repo = createMemoryRepository()
-    repo.approveClaim(repo.queueClaim({ userId: 'kameron', actId: 'little.dogs' }).id)
+    repo.approveClaim(repo.queueClaim({ userId: 'kameron', actId: 'little.ready-school' }).id)
     repo.adminResetMetersAndLedger()
     expect(repo.adminListLedger()).toEqual([])
     expect(repo.listPendingClaims()).toEqual([])

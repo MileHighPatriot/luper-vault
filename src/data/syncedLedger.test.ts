@@ -68,7 +68,7 @@ describe('SyncedLedger', () => {
     const kameron = await device(server)
     const alea = await device(server)
 
-    kameron.repository.queueClaim({ userId: 'kameron', actId: 'little.dogs' })
+    kameron.repository.queueClaim({ userId: 'kameron', actId: 'little.ready-school' })
     alea.repository.queueClaim({ userId: 'alea', actId: 'little.hamper' })
     await settle()
     await settle()
@@ -102,7 +102,7 @@ describe('SyncedLedger', () => {
 
     let notified = 0
     parent.repository.subscribe(() => notified++)
-    kid.repository.queueClaim({ userId: 'kameron', actId: 'little.dogs' })
+    kid.repository.queueClaim({ userId: 'kameron', actId: 'little.ready-school' })
     await settle()
     await parent.poll()
 
@@ -125,7 +125,7 @@ describe('SyncedLedger', () => {
     const kid = await device(server)
 
     server.offline = true
-    kid.repository.queueClaim({ userId: 'kameron', actId: 'little.dogs' })
+    kid.repository.queueClaim({ userId: 'kameron', actId: 'little.ready-school' })
     await settle()
     expect(kid.getStatus()).toBe('offline')
 
