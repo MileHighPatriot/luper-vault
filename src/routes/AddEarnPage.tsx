@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { NativeSelect } from '@/components/ui/native-select'
 import { cn } from '@/lib/utils'
 
 function signed(points: number): string {
@@ -293,13 +294,30 @@ export function AddEarnPage() {
               Custom points
             </CardTitle>
             <CardDescription>
-              Any amount for {earner ? earnerLabel(earner) : '—'}, with a reason. Use a minus sign to take points away.
+              Pick who gets them, then any amount with a reason. Use a minus sign to take points away.
               {earner && earner.role !== 'admin'
                 ? ` ${earner.name} sees the reason (not the number) next time they open the app.`
                 : ''}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+            <div className="flex flex-col gap-1 sm:w-44">
+              <label htmlFor="custom-earner" className="text-xs font-medium text-muted-foreground">
+                Who gets the points
+              </label>
+              <NativeSelect
+                id="custom-earner"
+                value={earner?.id ?? ''}
+                onChange={(e) => pickEarner(e.target.value)}
+                data-testid="custom-earner"
+              >
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {earnerLabel(u)}
+                  </option>
+                ))}
+              </NativeSelect>
+            </div>
             <div className="flex flex-col gap-1 sm:w-28">
               <label htmlFor="custom-points" className="text-xs font-medium text-muted-foreground">
                 Points
@@ -316,7 +334,7 @@ export function AddEarnPage() {
                 placeholder="+5 or -3"
               />
             </div>
-            <div className="flex flex-1 flex-col gap-1">
+            <div className="flex flex-col gap-1 sm:min-w-48 sm:flex-1">
               <label htmlFor="custom-reason" className="text-xs font-medium text-muted-foreground">
                 What it's for
               </label>
